@@ -1,0 +1,9 @@
+services:
+  evidently:
+    build: .
+    container_name: evidently
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./workspace:/app/workspace
+    restart: unless-stopped
