@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from config.ml_params import CONFIDENCE_LEVEL, POSITIVE_CLASS, TARGET
-from config.setting import ROBUSTNESS_ARTIFACTS_PATH, robustness_result_path
+from config.settings import ROBUSTNESS_ARTIFACTS_PATH, robustness_result_path
 from src.pipeline.extract_data import load_clean_data
 
 

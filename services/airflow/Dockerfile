@@ -8,7 +8,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 USER airflow
 # Dépendances du pipeline ML : mêmes versions que l'environnement local
-# (voir requierments.txt à la racine)
+# (voir requirements.txt à la racine)
 RUN pip install --no-cache-dir \
     numpy==2.4.6 \
     pandas==2.3.3 \

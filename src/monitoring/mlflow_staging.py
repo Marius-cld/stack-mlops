@@ -2,7 +2,7 @@ import mlflow.sklearn
 import pandas as pd
 
 from config.ml_params import MLFLOW_STAGING_ALIAS, STAGING_MIN_ROC_AUC, TARGET
-from config.setting import BENCHMARK_PATH
+from config.settings import BENCHMARK_PATH
 from src.pipeline.extract_data import load_clean_data
 from src.monitoring.mlflow_tracking import registered_name, setup
 from src.pipeline.train_final import best_model_name

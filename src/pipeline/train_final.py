@@ -12,7 +12,7 @@ from config.ml_params import (
     TARGET,
     TREES_PARAMS,
 )
-from config.setting import BENCHMARK_PATH, MODELS_PATH, final_model_path
+from config.settings import BENCHMARK_PATH, MODELS_PATH, final_model_path
 from src.lab.hyperparameters_optimizations import load_best_params
 from src.pipeline.extract_data import load_clean_data
 from src.pipeline.process_data import make_preprocessor

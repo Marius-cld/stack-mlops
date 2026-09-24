@@ -10,7 +10,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from config.setting import BENCHMARK_PATH, model_path
+from config.settings import BENCHMARK_PATH, model_path
 from src.pipeline.process_data import load_processed
 
 

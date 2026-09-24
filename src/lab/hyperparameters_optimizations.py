@@ -17,7 +17,7 @@ from config.ml_params import (
     TREES_GRID,
     TREES_PARAMS,
 )
-from config.setting import best_params_path
+from config.settings import best_params_path
 from src.pipeline.process_data import load_processed
 
 

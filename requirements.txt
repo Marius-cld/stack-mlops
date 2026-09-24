@@ -1,5 +1,5 @@
 # Environnement local (scripts lancés avec le bouton play, python -m ...).
-# Versions alignées sur l'image Airflow (services/airflow/dockerfile).
+# Versions alignées sur l'image Airflow (services/airflow/Dockerfile).
 # Airflow lui-même tourne dans Docker : pas besoin de l'installer ici.
 
 # Données et calcul

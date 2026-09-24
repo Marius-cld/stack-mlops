@@ -1,6 +1,6 @@
 FROM python:3.13-slim
 
-# Même version que celle qui écrit le workspace (requierments.txt, image Airflow)
+# Même version que celle qui écrit le workspace (requirements.txt, image Airflow)
 RUN pip install --no-cache-dir evidently==0.7.21
 
 WORKDIR /app

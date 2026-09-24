@@ -12,8 +12,8 @@ tests de robustesse, registre de modèles, orchestration, monitoring et promotio
 
 | Principe | Comment il est appliqué ici |
 |---|---|
-| **Reproductibilité** | Seed unique (`RANDOM_STATE = 42`) partout (split, CV, bootstrap, bruit), version de Python figée (`.python-version`), dépendances figées à l'identique dans [requierments.txt](requierments.txt), l'image Airflow et l'image Evidently. Seules les données brutes sont versionnées : tout le reste se régénère, au bit près, depuis un clone neuf (voir [Reproduire le projet](#reproduire-le-projet)). |
-| **Configuration centralisée** | Aucune valeur magique dans le code : chemins dans [config/setting.py](config/setting.py), paramètres ML et seuils qualité dans [config/ml_params.py](config/ml_params.py). |
+| **Reproductibilité** | Seed unique (`RANDOM_STATE = 42`) partout (split, CV, bootstrap, bruit), version de Python figée (`.python-version`), dépendances figées à l'identique dans [requirements.txt](requirements.txt), l'image Airflow et l'image Evidently. Seules les données brutes sont versionnées : tout le reste se régénère, au bit près, depuis un clone neuf (voir [Reproduire le projet](#reproduire-le-projet)). |
+| **Configuration centralisée** | Aucune valeur magique dans le code : chemins dans [config/settings.py](config/settings.py), paramètres ML et seuils qualité dans [config/ml_params.py](config/ml_params.py). |
 | **Séparation logique métier / orchestration** | Toute la logique vit dans `src/` ; le DAG Airflow ne fait qu'enchaîner des appels. Chaque module est exécutable seul (bouton play ou `python -m ...`). |
 | **Data validation** | `validate_data` bloque le pipeline si le jeu a trop peu de lignes, des NaN, ou des classes trop déséquilibrées. Les types sont forcés à l'extraction. |
 | **Pas de fuite de données** | Le préprocesseur est ajusté uniquement sur le train (`learned_stats.json`) ; le modèle final est un `Pipeline` (préprocesseur + estimateur) unique et versionné. |
@@ -23,7 +23,7 @@ tests de robustesse, registre de modèles, orchestration, monitoring et promotio
 | **Promotion progressive** | `candidate` (modèle évalué sur le test) → `staging` (modèle réentraîné sur tout le dataset). L'alias `production` n'est **jamais** posé automatiquement : c'est une décision humaine après revue dans MLflow. |
 | **Smoke test consommateur** | Après mise en staging, le modèle est rechargé via `models:/sirtuin6-elastic@staging` comme le ferait un client, et doit prédire sur des données réelles. |
 | **Monitoring des données** | Evidently produit des rapports de data summary et de data drift, consultables dans une UI dédiée. |
-| **Infra as code** | Chaque service (MLflow, Airflow, Evidently) est décrit par un `docker-compose.yaml` versionné. |
+| **Infra as code** | Chaque service (MLflow, Airflow, Evidently) est décrit par un `docker-compose.yml` versionné. |
 | **Secrets hors du dépôt** | Les secrets Airflow vivent dans `services/airflow/.env` (ignoré par git), créé depuis `.env.example`. |
 
 ## Vue d'ensemble
@@ -93,7 +93,7 @@ data/                       Seul raw/ est versionné, le reste est régénéré 
   models/                   Modèles sérialisés (joblib)
   figures/                  Graphiques de l'analyse descriptive
 src/
-  descriptive_statistics/   Analyse exploratoire (notebook)
+  notebooks/                Analyse exploratoire (notebook)
   pipeline/                 extract_data, process_data, build_models, train_final
   lab/                      hyperparameters_optimizations, benchmarking
   robustness/               Cross-validation répétée, bootstrap, bruit gaussien,
@@ -102,10 +102,10 @@ src/
 services/
   mlflow/                   Serveur MLflow (tracking + registre), port 5001
   airflow/                  Airflow + DAG `sirtuin6_elastic_staging`, port 8080
-  evidentlyia/              UI Evidently, port 8000
+  evidently/                UI Evidently, port 8000
 .env                        PYTHONPATH=. pour le bouton play (VS Code)
 .python-version             Version de Python du projet
-requierments.txt            Dépendances Python figées
+requirements.txt            Dépendances Python figées
 ```
 
 ## Robustesse
@@ -128,7 +128,7 @@ Prérequis : **Python 3.13**, **Docker**, VS Code (recommandé, pour le bouton p
 ```bash
 python3.13 -m venv .venv
 source .venv/bin/activate
-pip install -r requierments.txt
+pip install -r requirements.txt
 ```
 
 Dans VS Code, sélectionner l'interpréteur `.venv`. Le fichier `.env` racine (`PYTHONPATH=.`) et
@@ -140,17 +140,17 @@ directement avec le **bouton play**. En ligne de commande, lancer depuis la raci
 
 ```bash
 # MLflow  -> http://localhost:5001
-docker compose -f services/mlflow/docker-compose.yaml up -d
+docker compose -f services/mlflow/docker-compose.yml up -d
 
 # Evidently -> http://localhost:8000
-docker compose -f services/evidentlyia/docker-compose.yaml up -d --build
+docker compose -f services/evidently/docker-compose.yml up -d --build
 ```
 
 ### 3. Lab : scripts à lancer un par un, dans cet ordre
 
 | # | Script | Produit |
 |---|---|---|
-| 0 | `src/descriptive_statistics/descriptive_analyses.ipynb` (optionnel) | `data/figures/*.png` |
+| 0 | `src/notebooks/descriptive_analyses.ipynb` (optionnel) | `data/figures/*.png` |
 | 1 | `src.pipeline.extract_data` | `data/processed/sirtuin6_clean.csv` |
 | 2 | `src.pipeline.process_data` | `data/artifacts/<modèle>/` (splits, préprocesseurs) |
 | 3 | `src.lab.hyperparameters_optimizations` | `data/artifacts/<modèle>/best_params.json` |

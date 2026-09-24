@@ -27,8 +27,8 @@ services/mlflow/data/*
 !services/mlflow/data/.gitkeep
 
 # Evidently : snapshots des rapports
-services/evidentlyia/workspace/*
-!services/evidentlyia/workspace/.gitkeep
+services/evidently/workspace/*
+!services/evidently/workspace/.gitkeep
 
 # Sorties du pipeline (régénérées par les scripts), dossiers gardés via .gitkeep
 data/processed/*

@@ -4,7 +4,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 
 from config.ml_params import ELASTIC_PARAMS, SVM_PARAMS, TREES_PARAMS
-from config.setting import MODELS_PATH, model_path
+from config.settings import MODELS_PATH, model_path
 from src.lab.hyperparameters_optimizations import load_best_params
 from src.pipeline.process_data import load_processed
 

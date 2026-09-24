@@ -18,7 +18,7 @@ from config.ml_params import (
     POSITIVE_CLASS,
     TARGET,
 )
-from config.setting import (
+from config.settings import (
     BENCHMARK_PATH,
     MLFLOW_TRACKING_URI,
     final_model_path,

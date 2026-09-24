@@ -14,7 +14,7 @@ from config.ml_params import (
     TARGET,
     TEST_SIZE,
 )
-from config.setting import (
+from config.settings import (
     artifacts_dir,
     learned_stats_path,
     preprocessor_path,

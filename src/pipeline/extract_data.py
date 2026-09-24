@@ -1,7 +1,7 @@
 import pandas as pd
 
 from config.ml_params import CLASSES, MIN_CLASS_SHARE, MIN_ROWS, TARGET
-from config.setting import CLEAN_FILE_PATH, RAW_FILE_PATH
+from config.settings import CLEAN_FILE_PATH, RAW_FILE_PATH
 
 
 def extract_data() -> pd.DataFrame:

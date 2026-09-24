@@ -7,7 +7,7 @@ from evidently.ui.workspace import RemoteWorkspace
 from sklearn.model_selection import train_test_split
 
 from config.ml_params import RANDOM_STATE, TARGET
-from config.setting import CLEAN_FILE_PATH, EVIDENTLY_WORKSPACE_URL, RAW_FILE_PATH
+from config.settings import CLEAN_FILE_PATH, EVIDENTLY_WORKSPACE_URL, RAW_FILE_PATH
 from src.pipeline.process_data import split
 
 PROJECT_NAME = "sirtuin6"

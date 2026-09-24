@@ -34,7 +34,7 @@ def sirtuin6_elastic_staging():
     @task
     def extract_and_validate() -> int:
         """Extraction, typage et contrôles qualité des données."""
-        from config.setting import CLEAN_FILE_PATH
+        from config.settings import CLEAN_FILE_PATH
         from src.pipeline.extract_data import extract_data, validate_data
 
         df = extract_data()
