@@ -12,37 +12,52 @@ tests de robustesse, registre de modèles, orchestration, monitoring et promotio
 
 | Principe | Comment il est appliqué ici |
 |---|---|
-| **Reproductibilité** | Seed unique (`RANDOM_STATE = 42`), découpage stratifié, hyperparamètres et grilles centralisés dans [config/ml_params.py](config/ml_params.py), versions de scikit-learn/pandas/mlflow figées dans l'image Airflow. |
+| **Reproductibilité** | Seed unique (`RANDOM_STATE = 42`) partout (split, CV, bootstrap, bruit), version de Python figée (`.python-version`), dépendances figées à l'identique dans [requierments.txt](requierments.txt), l'image Airflow et l'image Evidently. Seules les données brutes sont versionnées : tout le reste se régénère, au bit près, depuis un clone neuf (voir [Reproduire le projet](#reproduire-le-projet)). |
 | **Configuration centralisée** | Aucune valeur magique dans le code : chemins dans [config/setting.py](config/setting.py), paramètres ML et seuils qualité dans [config/ml_params.py](config/ml_params.py). |
-| **Séparation logique métier / orchestration** | Toute la logique vit dans `src/` ; le DAG Airflow ne fait qu'enchaîner des appels. Chaque module est exécutable seul (`python -m ...`). |
+| **Séparation logique métier / orchestration** | Toute la logique vit dans `src/` ; le DAG Airflow ne fait qu'enchaîner des appels. Chaque module est exécutable seul (bouton play ou `python -m ...`). |
 | **Data validation** | `validate_data` bloque le pipeline si le jeu a trop peu de lignes, des NaN, ou des classes trop déséquilibrées. Les types sont forcés à l'extraction. |
 | **Pas de fuite de données** | Le préprocesseur est ajusté uniquement sur le train (`learned_stats.json`) ; le modèle final est un `Pipeline` (préprocesseur + estimateur) unique et versionné. |
 | **Évaluation rigoureuse** | Optimisation par CV répétée (5×3, ROC AUC), benchmark sur un jeu de test tenu à l'écart, puis tests de robustesse (voir ci-dessous). |
 | **Quality gate** | Un modèle n'atteint le registre que si son AUC test **et** son AUC moyen en CV répétée dépassent `STAGING_MIN_ROC_AUC` (0.85). |
-| **Registre et traçabilité** | Chaque entraînement final est logué dans MLflow (params, métriques, dataset d'entraînement, signature) et enregistré comme nouvelle version de `sirtuin6-<modèle>`. |
-| **Promotion progressive** | Le pipeline automatisé pose seulement l'alias `staging`. L'alias `production` n'est **jamais** posé automatiquement : c'est une décision humaine après revue dans MLflow. |
-| **Smoke test consommateur** | Après mise en staging, le modèle est rechargé via `models:/sirtuin6-<modèle>@staging` comme le ferait un client, et doit prédire sur des données réelles. |
+| **Registre et traçabilité** | Chaque modèle est logué dans MLflow (params, métriques, dataset d'entraînement, signature) et enregistré comme nouvelle version de `sirtuin6-<modèle>`. La version finale est reliée à sa version évaluée (`candidate_version`) et à son rapport Evidently (`evidently_snapshot`). |
+| **Promotion progressive** | `candidate` (modèle évalué sur le test) → `staging` (modèle réentraîné sur tout le dataset). L'alias `production` n'est **jamais** posé automatiquement : c'est une décision humaine après revue dans MLflow. |
+| **Smoke test consommateur** | Après mise en staging, le modèle est rechargé via `models:/sirtuin6-elastic@staging` comme le ferait un client, et doit prédire sur des données réelles. |
 | **Monitoring des données** | Evidently produit des rapports de data summary et de data drift, consultables dans une UI dédiée. |
 | **Infra as code** | Chaque service (MLflow, Airflow, Evidently) est décrit par un `docker-compose.yaml` versionné. |
+| **Secrets hors du dépôt** | Les secrets Airflow vivent dans `services/airflow/.env` (ignoré par git), créé depuis `.env.example`. |
 
 ## Vue d'ensemble
+
+Le projet se déroule en deux temps.
+
+**1. Lab (manuel, script par script)** : comparer trois modèles et choisir le champion.
 
 ```
  SIRTUIN6.csv ──► extract + validate ──► process (par modèle) ──► optimize (CV répétée)
                                                                         │
-                       ┌────────────────────────────────────────────────┘
-                       ▼
-                 build ──► benchmark (jeu de test) ──► meilleur modèle
-                                                             │
-                                                    quality gate (AUC ≥ 0.85)
-                                                             │
-                                          entraînement final sur toutes les données
-                                                             │
-                                    MLflow : log + registre ──► alias `staging`
-                                                             │
-                                                        smoke test
-                                                             │
-                                     revue humaine ──► alias `production` (manuel)
+                 build ──► benchmark (jeu de test) ──► tests de robustesse ◄┘
+                                     │
+                          champion : elastic
+```
+
+**2. Production du champion (Airflow, DAG `sirtuin6_elastic_staging`)** : chaque lundi à 3h.
+
+```
+ extract + validate ──► process (split) ──► optimize ──► build ──► evaluate (test)
+                                                                        │
+                                                          quality gate (AUC ≥ 0.85)
+                                                                        │
+                                MLflow : nouvelle version, alias `candidate`
+                                                                        │
+                                 Evidently : rapport train vs test (tagué vN)
+                                                                        │
+                          réentraînement sur l'intégralité du dataset (train_final)
+                                                                        │
+                                MLflow : nouvelle version, alias `staging`
+                                                                        │
+                                                                   smoke test
+                                                                        │
+                                           revue humaine ──► alias `production` (manuel)
 ```
 
 Les trois modèles comparés :
@@ -53,7 +68,8 @@ Les trois modèles comparés :
 | `svm` | SVM à noyau RBF | Standardisation |
 | `trees` | Random Forest (300 arbres) | Aucun |
 
-Résultats du benchmark sur le jeu de test ([data/artifacts/benchmark.csv](data/artifacts/benchmark.csv)) :
+Résultats du benchmark sur le jeu de test (`data/artifacts/benchmark.csv`, généré par
+`src.lab.benchmarking`) :
 
 | Modèle | ROC AUC | Accuracy | F1 |
 |---|---|---|---|
@@ -68,7 +84,7 @@ Résultats du benchmark sur le jeu de test ([data/artifacts/benchmark.csv](data/
 
 ```
 config/                     Chemins et paramètres ML (source unique de vérité)
-data/
+data/                       Seul raw/ est versionné, le reste est régénéré par les scripts
   raw/                      Données brutes (SIRTUIN6.csv)
   processed/                Données nettoyées et validées
   artifacts/<modèle>/       Splits, préprocesseur ajusté, meilleurs hyperparamètres
@@ -77,7 +93,7 @@ data/
   models/                   Modèles sérialisés (joblib)
   figures/                  Graphiques de l'analyse descriptive
 src/
-  descriptive_statistics/   Analyse exploratoire (script + notebook)
+  descriptive_statistics/   Analyse exploratoire (notebook)
   pipeline/                 extract_data, process_data, build_models, train_final
   lab/                      hyperparameters_optimizations, benchmarking
   robustness/               Cross-validation répétée, bootstrap, bruit gaussien,
@@ -85,8 +101,11 @@ src/
   monitoring/               mlflow_tracking, mlflow_staging, evidently_reports
 services/
   mlflow/                   Serveur MLflow (tracking + registre), port 5001
-  airflow/                  Airflow + DAG `sirtuin6_staging_model`
+  airflow/                  Airflow + DAG `sirtuin6_elastic_staging`, port 8080
   evidentlyia/              UI Evidently, port 8000
+.env                        PYTHONPATH=. pour le bouton play (VS Code)
+.python-version             Version de Python du projet
+requierments.txt            Dépendances Python figées
 ```
 
 ## Robustesse
@@ -100,51 +119,77 @@ la fiabilité de chaque modèle (ROC AUC, accuracy, balanced accuracy, F1) :
   (0 → 100 % de leur écart-type).
 - **Sensibilité aux hyperparamètres** : la performance dépend-elle fortement du réglage retenu ?
 
-## Démarrage
+## Reproduire le projet
 
-Prérequis : Python 3, Docker.
+Prérequis : **Python 3.13**, **Docker**, VS Code (recommandé, pour le bouton play).
+
+### 1. Environnement Python
 
 ```bash
-pip install -r requierments.txt        # + pandas, scikit-learn, evidently, etc.
+python3.13 -m venv .venv
+source .venv/bin/activate
+pip install -r requierments.txt
+```
 
-# 1. Serveur MLflow  -> http://localhost:5001
+Dans VS Code, sélectionner l'interpréteur `.venv`. Le fichier `.env` racine (`PYTHONPATH=.`) et
+`.vscode/settings.json` rendent `config` et `src` importables : chaque script se lance
+directement avec le **bouton play**. En ligne de commande, lancer depuis la racine avec
+`python -m <module>`.
+
+### 2. Services
+
+```bash
+# MLflow  -> http://localhost:5001
 docker compose -f services/mlflow/docker-compose.yaml up -d
 
-# 2. Pipeline complet en local (depuis la racine du dépôt)
-python -m src.pipeline.extract_data
-python -m src.lab.hyperparameters_optimizations
-python -m src.pipeline.build_models
-python -m src.lab.benchmarking
-python -m src.monitoring.mlflow_tracking     # log + enregistre dans le registre
-python -m src.monitoring.mlflow_staging      # alias staging
-
-# 3. Tests de robustesse (optionnel)
-python -m src.robustness.cross_validations
-python -m src.robustness.bootstraps
-python -m src.robustness.gaussian_noises
-python -m src.robustness.hyperparameters_sensitivities
-
-# 4. Monitoring des données -> UI http://localhost:8000
-python -m src.monitoring.evidently_reports
+# Evidently -> http://localhost:8000
 docker compose -f services/evidentlyia/docker-compose.yaml up -d --build
 ```
 
-### Orchestration avec Airflow
+### 3. Lab : scripts à lancer un par un, dans cet ordre
 
-Le DAG [staging_model.py](services/airflow/dag/staging_model.py) (`sirtuin6_staging_model`)
-exécute tout le pipeline chaque lundi à 3h (Europe/Paris) : validation des données →
-process / optimisation / build en parallèle par modèle → benchmark → quality gate →
-enregistrement → alias `staging` → smoke test.
+| # | Script | Produit |
+|---|---|---|
+| 0 | `src/descriptive_statistics/descriptive_analyses.ipynb` (optionnel) | `data/figures/*.png` |
+| 1 | `src.pipeline.extract_data` | `data/processed/sirtuin6_clean.csv` |
+| 2 | `src.pipeline.process_data` | `data/artifacts/<modèle>/` (splits, préprocesseurs) |
+| 3 | `src.lab.hyperparameters_optimizations` | `data/artifacts/<modèle>/best_params.json` |
+| 4 | `src.pipeline.build_models` | `data/models/<modèle>.joblib` |
+| 5 | `src.lab.benchmarking` | `data/artifacts/benchmark.csv` → choix du champion |
+| 6 | `src.robustness.cross_validations`, `bootstraps`, `gaussian_noises`, `hyperparameters_sensitivities` | `data/artifacts/robustness/*.csv` |
+| 7 | `src.pipeline.train_final` | `data/models/final_<champion>.joblib` |
+| 8 | `src.monitoring.mlflow_tracking` (MLflow démarré) | une version par modèle dans le registre |
+| 9 | `src.monitoring.mlflow_staging` | alias `staging` sur le champion |
+| 10 | `src.monitoring.evidently_reports` | rapport dans le workspace Evidently |
+
+Les résultats sont déterministes : un clone neuf retrouve exactement les mêmes splits,
+hyperparamètres, métriques et prédictions.
+
+### 4. Airflow : DAG du champion elastic
 
 ```bash
 cd services/airflow
+cp .env.example .env
+# remplir FERNET_KEY (commande de génération dans le fichier) et _AIRFLOW_WWW_USER_PASSWORD
 docker compose up -d --build
 ```
 
-Le dépôt est monté dans les conteneurs (`PYTHONPATH=/opt/airflow/project`), donc le DAG importe
-directement `src/` et `config/`. Le fichier `services/airflow/.env` contient `FERNET_KEY` : à
-régénérer et à ne pas publier pour un usage réel. Cette configuration est prévue pour le
-**développement local**, pas pour la production.
+Interface : http://localhost:8080, identifiants `_AIRFLOW_WWW_USER_USERNAME` /
+`_AIRFLOW_WWW_USER_PASSWORD` du `.env`. Activer puis lancer `sirtuin6_elastic_staging`.
+
+- Le dépôt est monté dans les conteneurs (`PYTHONPATH=/opt/airflow/project`) : le DAG importe
+  directement `src/` et `config/`, et écrit dans les mêmes `data/`, workspace Evidently et
+  registre MLflow (via `host.docker.internal:5001`) que les scripts locaux.
+- Le compte admin n'est créé qu'au **premier** passage d'`airflow-init`. Pour changer ensuite
+  le mot de passe : `docker exec airflow-airflow-apiserver-1 airflow users reset-password -u admin -p '<mdp>'`.
+
+**Deux fichiers `.env` :**
+
+- `.env` (racine) : `PYTHONPATH=.`, lu par VS Code (`python.envFile`). Aucun secret, versionné.
+- `services/airflow/.env` : lu par `docker compose` d'Airflow (`AIRFLOW_UID`, `FERNET_KEY`,
+  identifiant / mot de passe admin). Contient des secrets : **non versionné**.
+
+Cette configuration est prévue pour le **développement local**, pas pour la production.
 
 ### Promouvoir en production
 

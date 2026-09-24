@@ -7,10 +7,13 @@ RUN apt-get update \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 USER airflow
-# Dépendances du pipeline ML (mêmes versions que l'environnement local)
+# Dépendances du pipeline ML : mêmes versions que l'environnement local
+# (voir requierments.txt à la racine)
 RUN pip install --no-cache-dir \
-    scikit-learn==1.9.0 \
+    numpy==2.4.6 \
     pandas==2.3.3 \
-    scipy \
-    joblib \
-    mlflow==3.13.0
+    scipy==1.17.1 \
+    scikit-learn==1.9.0 \
+    joblib==1.5.3 \
+    mlflow==3.13.0 \
+    evidently==0.7.21

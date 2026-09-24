@@ -1,6 +1,9 @@
 from pathlib import Path
 
-# Racine du projet (config/ est à un niveau sous la racine)
+# Racine du projet (config/ est à un niveau sous la racine).
+# Calculée depuis ce fichier : indépendante du dossier courant, identique en local
+# (bouton play, python -m) et dans Airflow (/opt/airflow/project).
+# Tous les chemins du projet sont définis ici, jamais dans les scripts.
 ROOT_PATH = Path(__file__).resolve().parent.parent
 
 # Services
@@ -35,9 +38,19 @@ PIPELINE_PATH = SRC_PATH / "pipeline"
 ROBUSTNESS_PATH = SRC_PATH / "robustness"
 MONITORING_PATH = SRC_PATH / "monitoring"
 
+
+def figure_path(name: str) -> Path:
+    return FIGURES_PATH / f"{name}.png"
+
+
 # Chemins par modèle (name = "elastic" | "svm" | "trees")
 def artifacts_dir(name: str) -> Path:
     return ARTIFACTS_PATH / name
+
+
+def split_path(name: str, split: str) -> Path:
+    """split = "X_train" | "X_test" | "y_train" | "y_test"."""
+    return artifacts_dir(name) / f"{split}.csv"
 
 
 def preprocessor_path(name: str) -> Path:

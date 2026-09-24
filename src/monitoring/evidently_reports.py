@@ -4,10 +4,11 @@ from evidently.presets import DataDriftPreset, DataSummaryPreset
 from evidently.ui.workspace import Workspace
 from sklearn.model_selection import train_test_split
 
+from config.ml_params import RANDOM_STATE, TARGET
 from config.setting import CLEAN_FILE_PATH, EVIDENTLY_WORKSPACE_PATH, RAW_FILE_PATH
+from src.pipeline.process_data import split
 
 PROJECT_NAME = "sirtuin6"
-TARGET = "Class"
 
 
 def load_data() -> pd.DataFrame:
@@ -21,12 +22,17 @@ def to_dataset(df: pd.DataFrame) -> Dataset:
     return Dataset.from_pandas(df, data_definition=definition)
 
 
-def main() -> None:
-    df = load_data()
-    reference, current = train_test_split(df, test_size=0.3, stratify=df[TARGET], random_state=42)
-
+def add_report(
+    reference: pd.DataFrame,
+    current: pd.DataFrame,
+    tags: list[str] | None = None,
+    metadata: dict | None = None,
+) -> str:
+    """Data summary + data drift (current vs reference), ajouté au workspace. Retourne l'id du snapshot."""
     report = Report([DataSummaryPreset(), DataDriftPreset()])
-    snapshot = report.run(to_dataset(current), to_dataset(reference))
+    snapshot = report.run(
+        to_dataset(current), to_dataset(reference), tags=tags, metadata=metadata
+    )
 
     EVIDENTLY_WORKSPACE_PATH.mkdir(parents=True, exist_ok=True)
     workspace = Workspace.create(str(EVIDENTLY_WORKSPACE_PATH))
@@ -35,8 +41,33 @@ def main() -> None:
         project = workspace.create_project(PROJECT_NAME)
         project.description = "Data summary et data drift du dataset SIRTUIN6"
         project.save()
-    workspace.add_run(project.id, snapshot)
+    ref = workspace.add_run(project.id, snapshot)
     print(f"Rapport ajouté au workspace {EVIDENTLY_WORKSPACE_PATH}")
+    return str(ref.id)
+
+
+def report_split(name: str, version: str | None = None) -> str:
+    """Référence = train, courant = test : le split exact utilisé pour entraîner et évaluer le modèle."""
+    df = load_data()
+    X_train, X_test, _, _ = split(df)
+    tags = [name, "train_vs_test"]
+    metadata = {"model": name}
+    if version is not None:
+        tags.append(f"v{version}")
+        metadata["mlflow_version"] = str(version)
+    return add_report(df.loc[X_train.index], df.loc[X_test.index], tags, metadata)
+
+
+def report_elastic(version: str | None = None) -> str:
+    return report_split("elastic", version)
+
+
+def main() -> None:
+    df = load_data()
+    reference, current = train_test_split(
+        df, test_size=0.3, stratify=df[TARGET], random_state=RANDOM_STATE
+    )
+    add_report(reference, current)
 
 
 if __name__ == "__main__":

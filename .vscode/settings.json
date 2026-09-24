@@ -1,0 +1,13 @@
+{
+    // Racine du projet sur le PYTHONPATH : `config` et `src` importables
+    // depuis n'importe quel script lancé avec le bouton play.
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "${workspaceFolder}"
+    },
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "${workspaceFolder}"
+    },
+    // Même chose pour le debugger (F5) et les cellules # %% (Jupyter)
+    "python.envFile": "${workspaceFolder}/.env",
+    "jupyter.notebookFileRoot": "${workspaceFolder}"
+}

@@ -1,7 +1,7 @@
 import mlflow.sklearn
 import pandas as pd
 
-from config.ml_params import MLFLOW_STAGING_ALIAS, STAGING_MIN_ROC_AUC
+from config.ml_params import MLFLOW_STAGING_ALIAS, STAGING_MIN_ROC_AUC, TARGET
 from config.setting import BENCHMARK_PATH
 from src.pipeline.extract_data import load_clean_data
 from src.monitoring.mlflow_tracking import registered_name, setup
@@ -43,13 +43,14 @@ def _stage(name: str, version: str | None) -> str:
     return str(version)
 
 
-def passes_quality_gate(name: str) -> bool:
-    """AUC test (benchmark) et AUC moyen en CV répétée au-dessus du seuil."""
+def passes_quality_gate(name: str, test_auc: float | None = None) -> bool:
+    """AUC test (par défaut lu dans le benchmark) et AUC moyen en CV répétée au-dessus du seuil."""
     from src.robustness.cross_validations import cv_elastic, cv_svm, cv_trees
 
     cv = {"elastic": cv_elastic, "svm": cv_svm, "trees": cv_trees}[name]()
     cv_auc = cv.set_index("metric").loc["roc_auc", "mean"]
-    test_auc = pd.read_csv(BENCHMARK_PATH, index_col="model").loc[name, "roc_auc"]
+    if test_auc is None:
+        test_auc = pd.read_csv(BENCHMARK_PATH, index_col="model").loc[name, "roc_auc"]
     print(f"{name}: test={test_auc:.3f} cv={cv_auc:.3f} seuil={STAGING_MIN_ROC_AUC}")
     return bool(min(test_auc, cv_auc) >= STAGING_MIN_ROC_AUC)
 
@@ -60,7 +61,7 @@ def smoke_test(name: str) -> None:
     model = mlflow.sklearn.load_model(
         f"models:/{registered_name(name)}@{MLFLOW_STAGING_ALIAS}"
     )
-    X = load_clean_data().drop(columns="Class").head(5)
+    X = load_clean_data().drop(columns=TARGET).head(5)
     predictions = model.predict(X)
     if len(predictions) != len(X):
         raise RuntimeError("Le modèle staging ne prédit pas sur toutes les lignes")

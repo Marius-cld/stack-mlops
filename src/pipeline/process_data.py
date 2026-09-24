@@ -15,10 +15,10 @@ from config.ml_params import (
     TEST_SIZE,
 )
 from config.setting import (
-    ARTIFACTS_PATH,
     artifacts_dir,
     learned_stats_path,
     preprocessor_path,
+    split_path,
 )
 from src.pipeline.extract_data import load_clean_data
 
@@ -33,11 +33,10 @@ def split(df: pd.DataFrame):
 
 def load_processed(name: str):
     """Recharge X_train, X_test, y_train, y_test stockés dans artifacts."""
-    folder = ARTIFACTS_PATH / name
-    X_train = pd.read_csv(folder / "X_train.csv")
-    X_test = pd.read_csv(folder / "X_test.csv")
-    y_train = pd.read_csv(folder / "y_train.csv").squeeze("columns")
-    y_test = pd.read_csv(folder / "y_test.csv").squeeze("columns")
+    X_train = pd.read_csv(split_path(name, "X_train"))
+    X_test = pd.read_csv(split_path(name, "X_test"))
+    y_train = pd.read_csv(split_path(name, "y_train")).squeeze("columns")
+    y_test = pd.read_csv(split_path(name, "y_test")).squeeze("columns")
     return X_train, X_test, y_train, y_test
 
 
@@ -93,8 +92,7 @@ def learned_stats(transformer, columns=None) -> dict:
 
 
 def _save(name: str, X_train, X_test, y_train, y_test) -> None:
-    folder = artifacts_dir(name)
-    folder.mkdir(parents=True, exist_ok=True)
+    artifacts_dir(name).mkdir(parents=True, exist_ok=True)
 
     preprocessor = make_preprocessor(name, X_train.columns)
     if preprocessor is not None:
@@ -107,10 +105,10 @@ def _save(name: str, X_train, X_test, y_train, y_test) -> None:
             json.dumps(learned_stats(preprocessor), indent=2)
         )
 
-    X_train.reset_index(drop=True).to_csv(folder / "X_train.csv", index=False)
-    X_test.reset_index(drop=True).to_csv(folder / "X_test.csv", index=False)
-    y_train.reset_index(drop=True).to_csv(folder / "y_train.csv", index=False)
-    y_test.reset_index(drop=True).to_csv(folder / "y_test.csv", index=False)
+    X_train.reset_index(drop=True).to_csv(split_path(name, "X_train"), index=False)
+    X_test.reset_index(drop=True).to_csv(split_path(name, "X_test"), index=False)
+    y_train.reset_index(drop=True).to_csv(split_path(name, "y_train"), index=False)
+    y_test.reset_index(drop=True).to_csv(split_path(name, "y_test"), index=False)
 
 
 def process_elastic(df: pd.DataFrame) -> None:

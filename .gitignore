@@ -1,0 +1,38 @@
+# Principe : git suit le code, la configuration et les données brutes.
+# Tout ce que le pipeline ou les services régénèrent reste en local.
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# macOS / éditeurs
+.DS_Store
+.idea/
+
+# Secrets : services/airflow/.env contient FERNET_KEY et le mot de passe admin.
+# Modèle à copier : services/airflow/.env.example
+# Le .env racine (PYTHONPATH=.) ne contient aucun secret : il reste versionné.
+services/airflow/.env
+
+# Airflow : logs, config générée par airflow-init, plugins
+services/airflow/logs/
+services/airflow/config/
+services/airflow/plugins/
+
+# MLflow : base de tracking et artefacts des modèles (registre local)
+services/mlflow/data/*
+!services/mlflow/data/.gitkeep
+
+# Evidently : snapshots des rapports
+services/evidentlyia/workspace/*
+!services/evidentlyia/workspace/.gitkeep
+
+# Sorties du pipeline (régénérées par les scripts), dossiers gardés via .gitkeep
+data/processed/*
+data/artifacts/*
+data/models/*
+data/figures/*
+!data/**/.gitkeep

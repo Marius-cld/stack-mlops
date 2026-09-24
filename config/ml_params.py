@@ -52,6 +52,7 @@ MLFLOW_EXPERIMENT = "sirtuin6"
 MLFLOW_MODEL_PREFIX = "sirtuin6"  # nom enregistré : sirtuin6-<model>
 MLFLOW_PRODUCTION_ALIAS = "production"
 MLFLOW_STAGING_ALIAS = "staging"
+MLFLOW_CANDIDATE_ALIAS = "candidate"  # modèle entraîné sur le train, évalué sur le test
 
 # Contrôles qualité (data validation et gate avant staging)
 MIN_ROWS = 50

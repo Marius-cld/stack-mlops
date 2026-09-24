@@ -1,6 +1,7 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
-RUN pip install --no-cache-dir evidently
+# Même version que celle qui écrit le workspace (requierments.txt, image Airflow)
+RUN pip install --no-cache-dir evidently==0.7.21
 
 WORKDIR /app
 

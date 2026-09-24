@@ -1,1 +1,21 @@
-mlflow>=3.13
+# Environnement local (scripts lancés avec le bouton play, python -m ...).
+# Versions alignées sur l'image Airflow (services/airflow/dockerfile).
+# Airflow lui-même tourne dans Docker : pas besoin de l'installer ici.
+
+# Données et calcul
+numpy==2.4.6
+pandas==2.3.3
+scipy==1.17.1
+
+# Machine learning
+scikit-learn==1.9.0
+joblib==1.5.3
+
+# MLOps : tracking / registre et monitoring des données
+mlflow==3.13.0
+evidently==0.7.21
+
+# Statistiques descriptives (notebook, figures)
+matplotlib==3.10.9
+seaborn==0.13.2
+ipykernel==7.2.0
