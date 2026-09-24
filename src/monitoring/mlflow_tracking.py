@@ -1,4 +1,5 @@
 import os
+from importlib.metadata import version
 
 import joblib
 import mlflow
@@ -38,8 +39,22 @@ def setup() -> MlflowClient:
     """Pointe sur le serveur MLflow (surchargeable via MLFLOW_TRACKING_URI)."""
     uri = os.environ.get("MLFLOW_TRACKING_URI", MLFLOW_TRACKING_URI)
     mlflow.set_tracking_uri(uri)
+    client = MlflowClient()
+    # Un experiment supprimé depuis l'UI reste en corbeille (soft delete) : on le restaure.
+    exp = client.get_experiment_by_name(MLFLOW_EXPERIMENT)
+    if exp is not None and exp.lifecycle_stage == "deleted":
+        client.restore_experiment(exp.experiment_id)
     mlflow.set_experiment(MLFLOW_EXPERIMENT)
-    return MlflowClient()
+    return client
+
+
+def _pip_requirements() -> list[str]:
+    """Dépendances figées depuis l'environnement courant : évite le sous-processus
+    d'inférence de log_model (il recharge le modèle et fait exploser la mémoire du worker)."""
+    return [
+        f"{pkg}=={version(pkg)}"
+        for pkg in ("mlflow", "scikit-learn", "pandas", "numpy", "cloudpickle")
+    ]
 
 
 def _log_pipeline(
@@ -64,7 +79,8 @@ def _log_pipeline(
         info = mlflow.sklearn.log_model(
             pipeline,
             name="model",
-            signature=infer_signature(X, pipeline.predict(X)),
+            signature=infer_signature(X.head(100), pipeline.predict(X.head(100))),
+            pip_requirements=_pip_requirements(),
             registered_model_name=registered_name(name),
         )
     return str(info.registered_model_version)

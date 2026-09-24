@@ -60,6 +60,8 @@ x-airflow-common:
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
+    # Docker limité à ~4 Go : peu de tâches en parallèle pour éviter les OOM
+    AIRFLOW__CELERY__WORKER_CONCURRENCY: 2
     AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
@@ -80,6 +82,8 @@ x-airflow-common:
     PYTHONPATH: /opt/airflow/project
     # MLflow tourne sur l'hôte (services/mlflow, port 5001)
     MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://host.docker.internal:5001}
+    # Evidently tourne sur l'hôte (services/evidentlyia, port 8000)
+    EVIDENTLY_WORKSPACE_URL: ${EVIDENTLY_WORKSPACE_URL:-http://host.docker.internal:8000}
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dag:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs

@@ -1,14 +1,21 @@
+import os
+
 import pandas as pd
 from evidently import DataDefinition, Dataset, Report
 from evidently.presets import DataDriftPreset, DataSummaryPreset
-from evidently.ui.workspace import Workspace
+from evidently.ui.workspace import RemoteWorkspace
 from sklearn.model_selection import train_test_split
 
 from config.ml_params import RANDOM_STATE, TARGET
-from config.setting import CLEAN_FILE_PATH, EVIDENTLY_WORKSPACE_PATH, RAW_FILE_PATH
+from config.setting import CLEAN_FILE_PATH, EVIDENTLY_WORKSPACE_URL, RAW_FILE_PATH
 from src.pipeline.process_data import split
 
 PROJECT_NAME = "sirtuin6"
+
+
+def get_workspace() -> RemoteWorkspace:
+    """Pointe sur le serveur Evidently (surchargeable via EVIDENTLY_WORKSPACE_URL)."""
+    return RemoteWorkspace(os.environ.get("EVIDENTLY_WORKSPACE_URL", EVIDENTLY_WORKSPACE_URL))
 
 
 def load_data() -> pd.DataFrame:
@@ -34,15 +41,14 @@ def add_report(
         to_dataset(current), to_dataset(reference), tags=tags, metadata=metadata
     )
 
-    EVIDENTLY_WORKSPACE_PATH.mkdir(parents=True, exist_ok=True)
-    workspace = Workspace.create(str(EVIDENTLY_WORKSPACE_PATH))
+    workspace = get_workspace()
     project = next(iter(workspace.search_project(PROJECT_NAME)), None)
     if project is None:
         project = workspace.create_project(PROJECT_NAME)
         project.description = "Data summary et data drift du dataset SIRTUIN6"
         project.save()
     ref = workspace.add_run(project.id, snapshot)
-    print(f"Rapport ajouté au workspace {EVIDENTLY_WORKSPACE_PATH}")
+    print(f"Rapport ajouté au workspace Evidently {workspace.get_url()}")
     return str(ref.id)
 
 

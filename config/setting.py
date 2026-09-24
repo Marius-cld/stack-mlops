@@ -16,6 +16,8 @@ MLFLOW_PORT = 5001  # 5000 est pris par AirPlay sur macOS
 MLFLOW_TRACKING_URI = f"http://localhost:{MLFLOW_PORT}"
 EVIDENTLY_PATH = SERVICES_PATH / "evidentlyia"
 EVIDENTLY_WORKSPACE_PATH = EVIDENTLY_PATH / "workspace"
+EVIDENTLY_PORT = 8000
+EVIDENTLY_WORKSPACE_URL = f"http://localhost:{EVIDENTLY_PORT}"
 
 # Data
 DATA_PATH = ROOT_PATH / "data"
