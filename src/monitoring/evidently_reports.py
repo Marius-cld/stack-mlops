@@ -1,3 +1,5 @@
+"""Rapports Evidently (data summary et data drift) publiés dans le workspace distant."""
+
 import os
 
 import pandas as pd
@@ -14,16 +16,18 @@ PROJECT_NAME = "sirtuin6"
 
 
 def get_workspace() -> RemoteWorkspace:
-    """Pointe sur le serveur Evidently (surchargeable via EVIDENTLY_WORKSPACE_URL)."""
+    """Pointe sur le serveur Evidently (surchargeable via `EVIDENTLY_WORKSPACE_URL`)."""
     return RemoteWorkspace(os.environ.get("EVIDENTLY_WORKSPACE_URL", EVIDENTLY_WORKSPACE_URL))
 
 
 def load_data() -> pd.DataFrame:
+    """Charge le CSV propre s'il existe, sinon le CSV brut."""
     path = CLEAN_FILE_PATH if CLEAN_FILE_PATH.exists() else RAW_FILE_PATH
     return pd.read_csv(path)
 
 
 def to_dataset(df: pd.DataFrame) -> Dataset:
+    """Convertit en `Dataset` Evidently : descripteurs numériques, cible catégorielle."""
     numerical = [c for c in df.columns if c != TARGET]
     definition = DataDefinition(numerical_columns=numerical, categorical_columns=[TARGET])
     return Dataset.from_pandas(df, data_definition=definition)
@@ -35,7 +39,7 @@ def add_report(
     tags: list[str] | None = None,
     metadata: dict | None = None,
 ) -> str:
-    """Data summary + data drift (current vs reference), ajouté au workspace. Retourne l'id du snapshot."""
+    """Publie data summary + data drift (current vs reference) et retourne l'id du snapshot."""
     report = Report([DataSummaryPreset(), DataDriftPreset()])
     snapshot = report.run(
         to_dataset(current), to_dataset(reference), tags=tags, metadata=metadata
@@ -53,7 +57,7 @@ def add_report(
 
 
 def report_split(name: str, version: str | None = None) -> str:
-    """Référence = train, courant = test : le split exact utilisé pour entraîner et évaluer le modèle."""
+    """Compare train (référence) et test (courant), le split utilisé pour entraîner et évaluer."""
     df = load_data()
     X_train, X_test, _, _ = split(df)
     tags = [name, "train_vs_test"]

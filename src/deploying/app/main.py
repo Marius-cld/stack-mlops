@@ -57,8 +57,11 @@ def check_contract(model: ServedModel) -> None:
 
 
 async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
-    """422 sans l'écho des valeurs reçues : NaN et infini ne sont pas sérialisables en JSON et
-    feraient échouer la réponse d'erreur elle-même (500 au lieu de 422)."""
+    """Renvoie le 422 sans l'écho des valeurs reçues.
+
+    NaN et infini ne sont pas sérialisables en JSON et feraient échouer la réponse d'erreur
+    elle-même (500 au lieu de 422).
+    """
     errors = [
         {key: value for key, value in error.items() if key != "input"} for error in exc.errors()
     ]
@@ -121,7 +124,7 @@ def predict_batch(batch: BatchRequest, model: ServedModelDep) -> BatchResponse:
 
 
 def create_app(load_model: Callable[[], ServedModel] = load_from_registry) -> FastAPI:
-    """Application FastAPI ; les tests remplacent `load_model` pour se passer de MLflow."""
+    """Crée l'application FastAPI ; les tests remplacent `load_model` pour se passer de MLflow."""
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -137,7 +140,7 @@ def create_app(load_model: Callable[[], ServedModel] = load_from_registry) -> Fa
         lifespan=lifespan,
         exception_handlers={RequestValidationError: validation_error},
     )
-    # Origines autorisées à appeler l'API depuis un navigateur (liste séparée par des virgules)
+    # Origines navigateur autorisées à appeler l'API (`CORS_ORIGINS`, séparées par des virgules)
     origins = os.environ.get("CORS_ORIGINS", FRONTEND_URL).split(",")
     app.add_middleware(
         CORSMiddleware,
@@ -153,7 +156,7 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    # Développement local (bouton play, make run) : rechargement à chaud du code de l'API
+    # Développement local (bouton play, `make run`) : rechargement à chaud du code de l'API
     uvicorn.run(
         "src.deploying.app.main:app",
         host="127.0.0.1",

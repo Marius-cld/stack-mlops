@@ -1,3 +1,5 @@
+"""Sensibilité aux hyperparamètres : performances autour de l'optimum trouvé par le lab."""
+
 import pandas as pd
 from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_score
 

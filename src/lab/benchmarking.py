@@ -1,3 +1,5 @@
+"""Benchmark des modèles sur le jeu de test, sauvegardé dans `BENCHMARK_PATH`."""
+
 import joblib
 import pandas as pd
 from sklearn.metrics import (
@@ -15,11 +17,11 @@ from src.pipeline.process_data import load_processed
 
 
 def _evaluate(name: str) -> dict:
-    """Performances ponctuelles du modèle sur le jeu de test."""
+    """Mesure les performances ponctuelles du modèle sur le jeu de test."""
     _, X_test, _, y_test = load_processed(name)
     model = joblib.load(model_path(name))
     pred = model.predict(X_test)
-    # SVC sans probability=True : le score de décision suffit pour l'AUC
+    # SVC sans `probability=True` : le score de décision suffit pour l'AUC
     if hasattr(model, "predict_proba"):
         score = model.predict_proba(X_test)[:, 1]
     else:

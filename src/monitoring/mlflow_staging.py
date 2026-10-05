@@ -1,3 +1,5 @@
+"""Mise en staging MLflow : gate qualité, alias `staging` et smoke test depuis le registre."""
+
 import mlflow.sklearn
 import pandas as pd
 
@@ -9,7 +11,7 @@ from src.pipeline.train_final import best_model_name
 
 
 def latest_version(name: str) -> str:
-    """Dernière version enregistrée du modèle."""
+    """Retourne la dernière version enregistrée du modèle."""
     versions = setup().search_model_versions(f"name = '{registered_name(name)}'")
     if not versions:
         raise LookupError(
@@ -35,7 +37,7 @@ STAGERS = {"elastic": stage_elastic, "svm": stage_svm, "trees": stage_trees}
 
 
 def _stage(name: str, version: str | None) -> str:
-    """Place l'alias staging sur la version donnée (par défaut la dernière)."""
+    """Place l'alias `staging` sur la version donnée (par défaut la dernière)."""
     version = version or latest_version(name)
     setup().set_registered_model_alias(
         registered_name(name), MLFLOW_STAGING_ALIAS, str(version)
@@ -44,7 +46,10 @@ def _stage(name: str, version: str | None) -> str:
 
 
 def passes_quality_gate(name: str, test_auc: float | None = None) -> bool:
-    """AUC test (par défaut lu dans le benchmark) et AUC moyen en CV répétée au-dessus du seuil."""
+    """Vérifie que l'AUC test et l'AUC moyen en CV répétée atteignent le seuil de staging.
+
+    Sans `test_auc`, l'AUC test est lu dans le benchmark.
+    """
     from src.robustness.cross_validations import cv_elastic, cv_svm, cv_trees
 
     cv = {"elastic": cv_elastic, "svm": cv_svm, "trees": cv_trees}[name]()
@@ -56,7 +61,7 @@ def passes_quality_gate(name: str, test_auc: float | None = None) -> bool:
 
 
 def smoke_test(name: str) -> None:
-    """Charge la version staging depuis le registre et vérifie qu'elle prédit."""
+    """Charge la version `staging` depuis le registre et vérifie qu'elle prédit."""
     setup()
     model = mlflow.sklearn.load_model(
         f"models:/{registered_name(name)}@{MLFLOW_STAGING_ALIAS}"

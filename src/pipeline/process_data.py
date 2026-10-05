@@ -1,3 +1,5 @@
+"""Découpage train/test et préprocessing propre à chaque modèle, ajusté sur le train seul."""
+
 import json
 
 import joblib
@@ -24,6 +26,7 @@ from src.pipeline.extract_data import load_clean_data
 
 
 def split(df: pd.DataFrame):
+    """Découpe train/test stratifié, cible encodée 1 = `POSITIVE_CLASS` et 0 = l'autre classe."""
     X = df.drop(columns=TARGET)
     y = (df[TARGET] == POSITIVE_CLASS).astype(int)
     return train_test_split(
@@ -32,7 +35,7 @@ def split(df: pd.DataFrame):
 
 
 def load_processed(name: str):
-    """Recharge X_train, X_test, y_train, y_test stockés dans artifacts."""
+    """Recharge `X_train`, `X_test`, `y_train`, `y_test` depuis les artefacts du modèle."""
     X_train = pd.read_csv(split_path(name, "X_train"))
     X_test = pd.read_csv(split_path(name, "X_test"))
     y_train = pd.read_csv(split_path(name, "y_train")).squeeze("columns")
@@ -41,7 +44,7 @@ def load_processed(name: str):
 
 
 def _power_scale(columns) -> ColumnTransformer:
-    """Yeo-Johnson sur les variables asymétriques, puis standardisation."""
+    """Applique Yeo-Johnson aux variables asymétriques, puis standardise toutes les variables."""
     skewed = [col for col in SKEWED_FEATURES if col in columns]
     others = [col for col in columns if col not in skewed]
     return ColumnTransformer(
@@ -60,7 +63,7 @@ def _power_scale(columns) -> ColumnTransformer:
 
 
 def make_preprocessor(name: str, columns):
-    """Préprocesseur (non ajusté) du modèle, None si aucune transformation."""
+    """Construit le préprocesseur (non ajusté) du modèle, `None` si aucune transformation."""
     if name == "elastic":
         return _power_scale(columns)
     if name == "svm":
@@ -71,7 +74,7 @@ def make_preprocessor(name: str, columns):
 
 
 def learned_stats(transformer, columns=None) -> dict:
-    """Paramètres appris à l'ajustement (moyennes, écarts-types, lambdas...)."""
+    """Extrait les paramètres appris à l'ajustement (moyennes, écarts-types, lambdas...)."""
     if isinstance(transformer, ColumnTransformer):
         return {
             label: learned_stats(fitted, cols)
@@ -92,6 +95,7 @@ def learned_stats(transformer, columns=None) -> dict:
 
 
 def _save(name: str, X_train, X_test, y_train, y_test) -> None:
+    """Ajuste le préprocesseur sur le train, puis sauvegarde splits, préprocesseur et stats."""
     artifacts_dir(name).mkdir(parents=True, exist_ok=True)
 
     preprocessor = make_preprocessor(name, X_train.columns)
@@ -112,17 +116,17 @@ def _save(name: str, X_train, X_test, y_train, y_test) -> None:
 
 
 def process_elastic(df: pd.DataFrame) -> None:
-    """Régression logistique elastic-net : Yeo-Johnson + standardisation."""
+    """Prépare les données de la régression elastic-net : Yeo-Johnson + standardisation."""
     _save("elastic", *split(df))
 
 
 def process_svm(df: pd.DataFrame) -> None:
-    """SVM RBF : standardisation."""
+    """Prépare les données du SVM RBF : standardisation."""
     _save("svm", *split(df))
 
 
 def process_trees(df: pd.DataFrame) -> None:
-    """Arbres : aucune transformation, insensibles à l'échelle."""
+    """Prépare les données des arbres : aucune transformation, ils sont insensibles à l'échelle."""
     _save("trees", *split(df))
 
 

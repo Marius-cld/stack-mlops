@@ -22,8 +22,8 @@ from config.settings import MLFLOW_TRACKING_URI
 
 logger = logging.getLogger(__name__)
 
-# Encodage de la cible à l'entraînement (process_data.split) :
-# 1 = POSITIVE_CLASS, 0 = l'autre classe
+# Encodage de la cible à l'entraînement (`process_data.split`) :
+# 1 = `POSITIVE_CLASS`, 0 = l'autre classe
 LABELS = {int(label == POSITIVE_CLASS): label for label in CLASSES}
 
 
@@ -45,7 +45,7 @@ class ServedModel:
         return list(self.pipeline.feature_names_in_)
 
     def predict(self, rows: list[dict[str, float]]) -> list[dict]:
-        """Classe prédite et probabilités, une entrée par ligne et dans le même ordre."""
+        """Prédit classe et probabilités, une entrée par ligne et dans le même ordre."""
         X = pd.DataFrame(rows, columns=self.features)
         labels = [LABELS[int(cls)] for cls in self.pipeline.classes_]
         return [
@@ -55,11 +55,12 @@ class ServedModel:
 
 
 def tracking_uri() -> str:
+    """Retourne l'URI du serveur MLflow (surchargeable via `MLFLOW_TRACKING_URI`)."""
     return os.environ.get("MLFLOW_TRACKING_URI", MLFLOW_TRACKING_URI)
 
 
 def registry_reachable(timeout: float = 5) -> bool:
-    """Le serveur MLflow répond-il ? Sur un serveur absent, le client MLflow réessaie ~4 min."""
+    """Vérifie que le serveur MLflow répond, sans les ~4 min de tentatives du client MLflow."""
     try:
         urllib.request.urlopen(f"{tracking_uri()}/health", timeout=timeout)
     except OSError:
@@ -68,7 +69,7 @@ def registry_reachable(timeout: float = 5) -> bool:
 
 
 def load_from_registry() -> ServedModel:
-    """Charge la version pointée par l'alias (production par défaut, ou MODEL_ALIAS)."""
+    """Charge la version pointée par l'alias : `production` par défaut, ou `MODEL_ALIAS`."""
     if not registry_reachable():
         raise RuntimeError(f"Registre MLflow injoignable : {tracking_uri()}")
     mlflow.set_tracking_uri(tracking_uri())
@@ -77,7 +78,7 @@ def load_from_registry() -> ServedModel:
 
     client = MlflowClient()
     # Alias résolu une seule fois, puis chargement par numéro de version : la version annoncée
-    # est exactement celle chargée, même si l'alias est déplacé pendant le chargement.
+    # est exactement celle chargée, même si l'alias est déplacé pendant le chargement
     version = client.get_model_version_by_alias(name, alias)
     pipeline = mlflow.sklearn.load_model(f"models:/{name}/{version.version}")
     run = client.get_run(version.run_id)

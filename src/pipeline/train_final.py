@@ -1,3 +1,5 @@
+"""Entraînement final : préprocesseur + modèle réajustés sur l'intégralité du dataset."""
+
 import joblib
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -28,7 +30,7 @@ ESTIMATORS = {
 
 
 def make_pipeline(name: str, columns) -> Pipeline:
-    """Pipeline non ajusté (préprocesseur + modèle) avec les meilleurs hyperparamètres."""
+    """Construit le pipeline non ajusté : préprocesseur + modèle aux meilleurs hyperparamètres."""
     estimator_class, fixed = ESTIMATORS[name]
     estimator = estimator_class(**fixed).set_params(**load_best_params(name)["params"])
     steps = []
@@ -70,6 +72,7 @@ TRAINERS = {
 
 
 def best_model_name() -> str:
+    """Retourne le modèle au meilleur `BEST_METRIC` dans le benchmark."""
     benchmark = pd.read_csv(BENCHMARK_PATH, index_col="model")
     return benchmark[BEST_METRIC].idxmax()
 

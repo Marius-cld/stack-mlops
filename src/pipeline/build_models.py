@@ -1,3 +1,5 @@
+"""Construction des modèles du lab, ajustés sur le train et sauvegardés pour le benchmark."""
+
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -10,6 +12,7 @@ from src.pipeline.process_data import load_processed
 
 
 def _build(name: str, estimator):
+    """Ajuste l'estimateur sur le train avec les meilleurs hyperparamètres et le sauvegarde."""
     X_train, _, y_train, _ = load_processed(name)
     estimator.set_params(**load_best_params(name)["params"])
     estimator.fit(X_train, y_train)

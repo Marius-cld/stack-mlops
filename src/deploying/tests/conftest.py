@@ -1,3 +1,5 @@
+"""Fixtures des tests de l'API : un modèle léger remplace le registre MLflow."""
+
 import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
@@ -33,6 +35,7 @@ def served_model(dataset: pd.DataFrame) -> ServedModel:
 
 @pytest.fixture
 def client(served_model: ServedModel):
+    """Client HTTP de l'API ; le `with` déclenche le lifespan (chargement et contrôle du modèle)."""
     with TestClient(create_app(load_model=lambda: served_model)) as client:
         yield client
 

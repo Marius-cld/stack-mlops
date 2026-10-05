@@ -1,3 +1,5 @@
+"""Optimisation des hyperparamètres par GridSearch en CV répétée, sur le train uniquement."""
+
 import json
 
 from sklearn.ensemble import RandomForestClassifier
@@ -30,6 +32,7 @@ def load_best_params(name: str) -> dict:
 
 
 def _optimize(name: str, estimator, grid: dict) -> dict:
+    """Cherche les meilleurs hyperparamètres et les sauvegarde avec leur score de CV."""
     X_train, _, y_train, _ = load_processed(name)
     search = GridSearchCV(estimator, grid, scoring=SCORING, cv=_cv(), n_jobs=-1)
     search.fit(X_train, y_train)
@@ -43,6 +46,7 @@ def _optimize(name: str, estimator, grid: dict) -> dict:
 
 
 def _native(value):
+    """Convertit un scalaire numpy en type Python natif, sérialisable en JSON."""
     return value.item() if hasattr(value, "item") else value
 
 

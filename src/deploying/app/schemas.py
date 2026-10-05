@@ -1,4 +1,4 @@
-"""Contrat de l'API : schémas d'entrée et de sortie, publiés dans /docs et /openapi.json."""
+"""Contrat de l'API : schémas d'entrée et de sortie, publiés dans `/docs` et `/openapi.json`."""
 
 from typing import Literal
 
@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, FiniteFloat
 
 from config.ml_params import MAX_BATCH_SIZE
 
-# Classes de la cible (config.ml_params.CLASSES), écrites en clair pour typer le contrat
+# Classes de la cible (`config.ml_params.CLASSES`), écrites en clair pour typer le contrat
 Label = Literal["Low_BFE", "High_BFE"]
 
 
@@ -57,12 +57,16 @@ class Molecule(BaseModel):
 
 
 class BatchRequest(BaseModel):
+    """Lot de molécules à prédire en un seul appel."""
+
     model_config = ConfigDict(extra="forbid")
 
     molecules: list[Molecule] = Field(min_length=1, max_length=MAX_BATCH_SIZE)
 
 
 class Prediction(BaseModel):
+    """Prédiction pour une molécule."""
+
     label: Label = Field(description="Classe prédite : énergie de liaison élevée ou faible")
     probabilities: dict[Label, float] = Field(description="Probabilité par classe (somme = 1)")
 
@@ -76,10 +80,14 @@ class ModelRef(BaseModel):
 
 
 class PredictionResponse(Prediction):
+    """Prédiction d'une molécule et version du modèle qui l'a produite."""
+
     model: ModelRef
 
 
 class BatchResponse(BaseModel):
+    """Prédictions d'un lot et version du modèle qui les a produites."""
+
     predictions: list[Prediction] = Field(
         description="Une prédiction par molécule, dans l'ordre de la requête"
     )
@@ -98,5 +106,7 @@ class ModelInfo(ModelRef):
 
 
 class Health(BaseModel):
+    """État de l'API et modèle servi."""
+
     status: Literal["ok"]
     model: ModelRef

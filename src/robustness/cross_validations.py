@@ -1,3 +1,5 @@
+"""Robustesse par validation croisée : dispersion des métriques sur des splits répétés."""
+
 import pandas as pd
 from sklearn.model_selection import RepeatedStratifiedKFold, cross_validate
 
@@ -12,7 +14,7 @@ from src.robustness.common import load_xy, save_results, summarize
 
 
 def _cross_validate(name: str) -> pd.DataFrame:
-    """Validation croisée stratifiée répétée sur toutes les données."""
+    """Évalue le modèle en validation croisée stratifiée répétée sur toutes les données."""
     X, y = load_xy()
     cv = RepeatedStratifiedKFold(
         n_splits=ROBUSTNESS_CV_SPLITS,

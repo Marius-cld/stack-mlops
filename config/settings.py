@@ -1,9 +1,10 @@
+"""Chemins et ports du projet : définis ici, jamais dans les scripts."""
+
 from pathlib import Path
 
-# Racine du projet (config/ est à un niveau sous la racine).
-# Calculée depuis ce fichier : indépendante du dossier courant, identique en local
-# (bouton play, python -m) et dans Airflow (/opt/airflow/project).
-# Tous les chemins du projet sont définis ici, jamais dans les scripts.
+# Racine du projet, calculée depuis ce fichier (`config/` est à un niveau sous la racine) :
+# indépendante du dossier courant, identique en local (bouton play, `python -m`) et dans
+# Airflow (`/opt/airflow/project`)
 ROOT_PATH = Path(__file__).resolve().parent.parent
 
 # Services
@@ -19,10 +20,10 @@ EVIDENTLY_WORKSPACE_PATH = EVIDENTLY_PATH / "workspace"
 EVIDENTLY_PORT = 8000
 EVIDENTLY_WORKSPACE_URL = f"http://localhost:{EVIDENTLY_PORT}"
 API_PORT = 8001  # 8000 est pris par Evidently
-FRONTEND_PORT = 5173  # serveur de dev Vite (frontend/)
+FRONTEND_PORT = 5173  # serveur de dev Vite (`frontend/`)
 FRONTEND_URL = f"http://localhost:{FRONTEND_PORT}"
 
-# Data
+# Données
 DATA_PATH = ROOT_PATH / "data"
 RAW_PATH = DATA_PATH / "raw"
 PROCESS_PATH = DATA_PATH / "processed"
@@ -31,11 +32,11 @@ MODELS_PATH = DATA_PATH / "models"
 RAW_FILE_PATH = RAW_PATH / "SIRTUIN6.csv"
 CLEAN_FILE_PATH = PROCESS_PATH / "sirtuin6_clean.csv"
 
-# Artifacts (données traitées, préprocesseurs, hyperparamètres, benchmark)
+# Artefacts (données traitées, préprocesseurs, hyperparamètres, benchmark)
 ARTIFACTS_PATH = DATA_PATH / "artifacts"
 BENCHMARK_PATH = ARTIFACTS_PATH / "benchmark.csv"
 
-# Source
+# Code source
 SRC_PATH = ROOT_PATH / "src"
 NOTEBOOKS_PATH = SRC_PATH / "notebooks"
 LAB_PATH = SRC_PATH / "lab"
@@ -49,13 +50,13 @@ def figure_path(name: str) -> Path:
     return FIGURES_PATH / f"{name}.png"
 
 
-# Chemins par modèle (name = "elastic" | "svm" | "trees")
+# Chemins par modèle (`name` = "elastic" | "svm" | "trees")
 def artifacts_dir(name: str) -> Path:
     return ARTIFACTS_PATH / name
 
 
 def split_path(name: str, split: str) -> Path:
-    """split = "X_train" | "X_test" | "y_train" | "y_test"."""
+    """Retourne le CSV d'un split (`split` = "X_train" | "X_test" | "y_train" | "y_test")."""
     return artifacts_dir(name) / f"{split}.csv"
 
 

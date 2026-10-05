@@ -1,3 +1,5 @@
+"""Suivi MLflow : runs, versions du registre et alias des modèles."""
+
 import os
 from importlib.metadata import version
 
@@ -36,11 +38,11 @@ def registered_name(name: str) -> str:
 
 
 def setup() -> MlflowClient:
-    """Pointe sur le serveur MLflow (surchargeable via MLFLOW_TRACKING_URI)."""
+    """Pointe sur le serveur MLflow (surchargeable via `MLFLOW_TRACKING_URI`)."""
     uri = os.environ.get("MLFLOW_TRACKING_URI", MLFLOW_TRACKING_URI)
     mlflow.set_tracking_uri(uri)
     client = MlflowClient()
-    # Un experiment supprimé depuis l'UI reste en corbeille (soft delete) : on le restaure.
+    # Un experiment supprimé depuis l'UI reste en corbeille (soft delete) : on le restaure
     exp = client.get_experiment_by_name(MLFLOW_EXPERIMENT)
     if exp is not None and exp.lifecycle_stage == "deleted":
         client.restore_experiment(exp.experiment_id)
@@ -49,8 +51,11 @@ def setup() -> MlflowClient:
 
 
 def _pip_requirements() -> list[str]:
-    """Dépendances figées depuis l'environnement courant : évite le sous-processus
-    d'inférence de log_model (il recharge le modèle et fait exploser la mémoire du worker)."""
+    """Fige les dépendances depuis l'environnement courant.
+
+    Évite le sous-processus d'inférence de `mlflow.sklearn.log_model`, qui recharge le modèle
+    et fait exploser la mémoire du worker.
+    """
     return [
         f"{pkg}=={version(pkg)}"
         for pkg in ("mlflow", "scikit-learn", "pandas", "numpy", "cloudpickle")
@@ -66,7 +71,7 @@ def _log_pipeline(
     metrics: dict,
     tags: dict | None = None,
 ) -> str:
-    """Logue un pipeline ajusté (params, métriques, dataset, modèle) : une nouvelle version par appel."""
+    """Logue un pipeline ajusté (params, métriques, dataset, modèle) en une nouvelle version."""
     setup()
     X = df.drop(columns=TARGET)
     best = load_best_params(name)
@@ -102,11 +107,14 @@ def log_model(name: str, df: pd.DataFrame, promote: bool = False) -> str:
 
 
 def trained_pipeline(name: str, X_train: pd.DataFrame) -> Pipeline:
-    """Pipeline évalué au benchmark : préprocesseur (process_data) et modèle (build_models) ajustés sur le train."""
+    """Reconstitue le pipeline évalué au benchmark, ajusté sur le train.
+
+    Préprocesseur issu de `process_data`, modèle issu de `build_models`.
+    """
     steps = []
     if preprocessor_path(name).exists():
         preprocessor = joblib.load(preprocessor_path(name))
-        # process_data remet les colonnes dans l'ordre d'origine après transformation
+        # `process_data` remet les colonnes dans l'ordre d'origine après transformation
         order = ColumnTransformer(
             [("order", "passthrough", list(X_train.columns))], verbose_feature_names_out=False
         ).set_output(transform="pandas")
@@ -117,7 +125,7 @@ def trained_pipeline(name: str, X_train: pd.DataFrame) -> Pipeline:
 
 
 def log_candidate(name: str, metrics: dict) -> str:
-    """Enregistre le modèle entraîné sur le train, avec ses métriques de test, alias candidate."""
+    """Enregistre le modèle entraîné sur le train avec ses métriques de test (alias `candidate`)."""
     df = load_clean_data()
     X_train, _, _, _ = split(df)
     train = df.loc[X_train.index]
@@ -135,7 +143,7 @@ def log_candidate(name: str, metrics: dict) -> str:
 
 
 def log_final(name: str, metrics: dict, candidate_version: str, tags: dict | None = None) -> str:
-    """Enregistre le modèle réentraîné sur tout le dataset (train_final), lié à sa version candidate."""
+    """Enregistre le modèle de `train_final` (tout le dataset), relié à sa version `candidate`."""
     return _log_pipeline(
         name,
         joblib.load(final_model_path(name)),
@@ -164,7 +172,7 @@ def set_alias(name: str, alias: str, version: int | str) -> None:
 
 
 def load_production(name: str):
-    """Charge la version alias 'production' d'un modèle enregistré."""
+    """Charge la version d'alias `production` d'un modèle enregistré."""
     setup()
     return mlflow.sklearn.load_model(
         f"models:/{registered_name(name)}@{MLFLOW_PRODUCTION_ALIAS}"

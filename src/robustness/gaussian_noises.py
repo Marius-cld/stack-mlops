@@ -1,3 +1,5 @@
+"""Robustesse au bruit : performances sous bruit gaussien ajouté aux variables de test."""
+
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
@@ -15,9 +17,9 @@ from src.robustness.common import load_xy, positive_score, save_results
 
 
 def _noise(name: str) -> pd.DataFrame:
-    """Bruit gaussien sur les variables du fold de test.
+    """Mesure les performances sous bruit gaussien ajouté aux variables du fold de test.
 
-    L'écart-type du bruit vaut `niveau` × écart-type de la variable (train).
+    L'écart-type du bruit vaut le niveau (`NOISE_LEVELS`) × l'écart-type de la variable (train).
     """
     X, y = load_xy()
     pipeline = make_pipeline(name, X.columns)

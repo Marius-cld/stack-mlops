@@ -1,11 +1,11 @@
 """Pipeline MLOps du champion elastic (choisi par les scripts du lab : benchmark, robustesse).
 
 extraction -> traitement (split) -> optimisation -> construction -> évaluation test
--> gate qualité -> MLflow (version + alias candidate) -> Evidently (train vs test)
--> réentraînement sur tout le dataset -> MLflow (version + alias staging) -> smoke test
+-> gate qualité -> MLflow (version + alias `candidate`) -> Evidently (train vs test)
+-> réentraînement sur tout le dataset -> MLflow (version + alias `staging`) -> smoke test
 
 Principes :
-- la logique métier vit dans src/, le DAG ne fait qu'orchestrer ;
+- la logique métier vit dans `src/`, le DAG ne fait qu'orchestrer ;
 - le modèle évalué sur le test est versionné tel quel (alias `candidate`) : ses
   métriques sont honnêtes ;
 - le modèle servi est réentraîné sur tout le dataset avec les mêmes hyperparamètres,
@@ -33,7 +33,7 @@ DEFAULT_ARGS = {"owner": "mlops", "retries": 1, "retry_delay": pendulum.duration
 def sirtuin6_elastic_staging():
     @task
     def extract_and_validate() -> int:
-        """Extraction, typage et contrôles qualité des données."""
+        """Extrait et type les données, puis contrôle leur qualité."""
         from config.settings import CLEAN_FILE_PATH
         from src.pipeline.extract_data import extract_data, validate_data
 
@@ -45,7 +45,7 @@ def sirtuin6_elastic_staging():
 
     @task
     def process() -> None:
-        """Split train/test stratifié + Yeo-Johnson et standardisation ajustés sur le train."""
+        """Découpe train/test stratifié, puis ajuste Yeo-Johnson et standardisation sur le train."""
         from src.pipeline.extract_data import load_clean_data
         from src.pipeline.process_data import process_elastic
 
@@ -53,7 +53,7 @@ def sirtuin6_elastic_staging():
 
     @task
     def optimize() -> dict:
-        """GridSearch en CV répétée sur le train uniquement."""
+        """Optimise les hyperparamètres par GridSearch en CV répétée, sur le train uniquement."""
         from src.lab.hyperparameters_optimizations import optimize_elastic
 
         return optimize_elastic()
@@ -67,7 +67,7 @@ def sirtuin6_elastic_staging():
 
     @task
     def evaluate() -> dict:
-        """Métriques sur le jeu de test (jamais vu à l'entraînement ni à l'optimisation)."""
+        """Évalue sur le jeu de test, jamais vu à l'entraînement ni à l'optimisation."""
         from src.lab.benchmarking import benchmark_elastic
 
         metrics = benchmark_elastic()
@@ -83,14 +83,14 @@ def sirtuin6_elastic_staging():
 
     @task
     def register_candidate(metrics: dict) -> str:
-        """Versionne le modèle entraîné sur le train (run historisé + alias candidate)."""
+        """Versionne le modèle entraîné sur le train (run historisé + alias `candidate`)."""
         from src.monitoring.mlflow_tracking import log_candidate_elastic
 
         return log_candidate_elastic(metrics)
 
     @task
     def evidently_report(version: str) -> str:
-        """Data summary + drift train vs test dans le workspace Evidently, tagué avec la version."""
+        """Publie data summary + drift train vs test dans Evidently, tagués avec la version."""
         from src.monitoring.evidently_reports import report_elastic
 
         return report_elastic(version)
@@ -114,13 +114,14 @@ def sirtuin6_elastic_staging():
 
     @task
     def set_staging_alias(version: str) -> str:
+        """Pose l'alias `staging` sur la version finale."""
         from src.monitoring.mlflow_staging import stage_elastic
 
         return stage_elastic(version)
 
     @task
     def smoke_test(_staged: str) -> None:
-        """Charge le modèle via l'alias staging, exactement comme un consommateur."""
+        """Charge le modèle via l'alias `staging`, exactement comme un consommateur."""
         from src.monitoring.mlflow_staging import smoke_test as run_smoke_test
 
         run_smoke_test(MODEL)

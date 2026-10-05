@@ -1,3 +1,5 @@
+"""Tests de l'API de serving : contrat d'entrée et de sortie, démarrage, registre MLflow."""
+
 import json
 from dataclasses import replace
 from typing import get_args
@@ -16,6 +18,7 @@ from src.deploying.app.schemas import Label, Molecule
 
 
 def test_health(client):
+    """La sonde répond une fois le modèle chargé et indique la version servie."""
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {
@@ -25,6 +28,7 @@ def test_health(client):
 
 
 def test_model_info(client):
+    """La fiche du modèle expose descripteurs, classes et provenance MLflow."""
     info = client.get("/v1/model").json()
     assert set(info["features"]) == set(Molecule.features())
     assert info["classes"] == CLASSES
@@ -33,6 +37,7 @@ def test_model_info(client):
 
 
 def test_predict(client, molecule):
+    """La réponse donne une probabilité par classe (somme = 1) et le label le plus probable."""
     response = client.post("/v1/predict", json=molecule)
     assert response.status_code == 200
     body = response.json()
@@ -69,7 +74,8 @@ INVALID_MOLECULES = {
 
 @pytest.mark.parametrize("alter", INVALID_MOLECULES.values(), ids=list(INVALID_MOLECULES))
 def test_invalid_molecule_rejected(client, molecule, alter):
-    # json.dumps écrit NaN / Infinity, que le parseur JSON de l'API accepte :
+    """Une molécule hors contrat est refusée en 422."""
+    # `json.dumps` écrit NaN / Infinity, que le parseur JSON de l'API accepte :
     # c'est le schéma qui doit les refuser
     response = client.post(
         "/v1/predict",
@@ -81,6 +87,7 @@ def test_invalid_molecule_rejected(client, molecule, alter):
 
 @pytest.mark.parametrize("size", [0, MAX_BATCH_SIZE + 1])
 def test_batch_size_limits(client, molecule, size):
+    """Un lot vide ou au-delà de `MAX_BATCH_SIZE` est refusé en 422."""
     response = client.post("/v1/predict/batch", json={"molecules": [molecule] * size})
     assert response.status_code == 422
 
@@ -101,6 +108,7 @@ def test_unservable_model_prevents_startup(served_model, dataset, dropped, estim
 
 
 def test_label_type_matches_config():
+    """Le type `Label`, écrit en clair, reste aligné sur `CLASSES`."""
     assert list(get_args(Label)) == CLASSES
 
 

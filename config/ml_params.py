@@ -1,3 +1,5 @@
+"""Paramètres ML du projet, regroupés par thème : données, modèles, robustesse, MLflow, serving."""
+
 # Cible
 TARGET = "Class"
 POSITIVE_CLASS = "High_BFE"
@@ -49,17 +51,17 @@ CONFIDENCE_LEVEL = 0.95
 
 # MLflow
 MLFLOW_EXPERIMENT = "sirtuin6"
-MLFLOW_MODEL_PREFIX = "sirtuin6"  # nom enregistré : sirtuin6-<model>
+MLFLOW_MODEL_PREFIX = "sirtuin6"  # nom enregistré : `sirtuin6-<model>`
 MLFLOW_PRODUCTION_ALIAS = "production"
 MLFLOW_STAGING_ALIAS = "staging"
 MLFLOW_CANDIDATE_ALIAS = "candidate"  # modèle entraîné sur le train, évalué sur le test
 
 # Serving (API FastAPI)
 SERVING_MODEL = "elastic"  # champion retenu par le lab (benchmark + robustesse)
-SERVING_ALIAS = MLFLOW_PRODUCTION_ALIAS  # surchargeable via MODEL_ALIAS (ex. staging)
-MAX_BATCH_SIZE = 1000  # molécules par requête sur /v1/predict/batch
+SERVING_ALIAS = MLFLOW_PRODUCTION_ALIAS  # surchargeable via `MODEL_ALIAS` (ex. `staging`)
+MAX_BATCH_SIZE = 1000  # molécules par requête sur `/v1/predict/batch`
 
 # Contrôles qualité (data validation et gate avant staging)
 MIN_ROWS = 50
 MIN_CLASS_SHARE = 0.3
-STAGING_MIN_ROC_AUC = 0.85  # benchmark test ET moyenne de la CV répétée
+STAGING_MIN_ROC_AUC = 0.85  # seuil pour l'AUC test et pour l'AUC moyen en CV répétée

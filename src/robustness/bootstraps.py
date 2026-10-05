@@ -1,3 +1,5 @@
+"""Robustesse par bootstrap : entraînement sur un rééchantillonnage, évaluation out-of-bag."""
+
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
