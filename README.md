@@ -22,6 +22,7 @@ tests de robustesse, registre de modèles, orchestration, monitoring et promotio
 | **Registre et traçabilité** | Chaque modèle est logué dans MLflow (params, métriques, dataset d'entraînement, signature) et enregistré comme nouvelle version de `sirtuin6-<modèle>`. La version finale est reliée à sa version évaluée (`candidate_version`) et à son rapport Evidently (`evidently_snapshot`). |
 | **Promotion progressive** | `candidate` (modèle évalué sur le test) → `staging` (modèle réentraîné sur tout le dataset). L'alias `production` n'est **jamais** posé automatiquement : c'est une décision humaine après revue dans MLflow. |
 | **Smoke test consommateur** | Après mise en staging, le modèle est rechargé via `models:/sirtuin6-elastic@staging` comme le ferait un client, et doit prédire sur des données réelles. |
+| **Serving traçable** | L'API ne sert que la version du registre pointée par `production`, et chaque réponse indique la version qui l'a produite. Elle refuse de démarrer si le modèle n'attend pas exactement les descripteurs de son schéma d'entrée. |
 | **Monitoring des données** | Evidently produit des rapports de data summary et de data drift, consultables dans une UI dédiée. |
 | **Infra as code** | Chaque service (MLflow, Airflow, Evidently) est décrit par un `docker-compose.yml` versionné. |
 | **Secrets hors du dépôt** | Les secrets Airflow vivent dans `services/airflow/.env` (ignoré par git), créé depuis `.env.example`. |
@@ -58,6 +59,8 @@ Le projet se déroule en deux temps.
                                                                    smoke test
                                                                         │
                                            revue humaine ──► alias `production` (manuel)
+                                                                        │
+                                                 API FastAPI : sert la version `production`
 ```
 
 Les trois modèles comparés :
@@ -99,12 +102,17 @@ src/
   robustness/               Cross-validation répétée, bootstrap, bruit gaussien,
                             sensibilité aux hyperparamètres
   monitoring/               mlflow_tracking, mlflow_staging, evidently_reports
+  deploying/                API de serving FastAPI (app/) et ses tests (tests/)
 services/
   mlflow/                   Serveur MLflow (tracking + registre), port 5001
   airflow/                  Airflow + DAG `sirtuin6_elastic_staging`, port 8080
   evidently/                UI Evidently, port 8000
+  api/                      Image Docker de l'API de serving, port 8001
+.github/workflows/ci.yml    CI : tests de l'API et build de son image
 .env                        PYTHONPATH=. pour le bouton play (VS Code)
 .python-version             Version de Python du projet
+Makefile                    Raccourcis : install, run, test, build, up, down (API)
+pytest.ini                  Configuration des tests
 requirements.txt            Dépendances Python figées
 ```
 
@@ -201,12 +209,58 @@ from src.monitoring.mlflow_tracking import load_production
 model = load_production("elastic")   # models:/sirtuin6-elastic@production
 ```
 
+L'API de serving charge cette version à son démarrage : la redémarrer (`docker restart api`)
+pour servir une version nouvellement promue.
+
+### 5. Serving : API FastAPI
+
+L'API ([src/deploying/app/](src/deploying/app/)) sert la version du registre pointée par l'alias
+`production`, chargée une seule fois au démarrage. Elle refuse de démarrer si MLflow est
+injoignable ou si le modèle n'attend pas exactement les descripteurs de son schéma d'entrée :
+mieux vaut un service absent qu'un service qui prédit faux.
+
+```bash
+make up      # conteneur (services/api)           -> http://localhost:8001/docs
+make run     # ou en local, rechargement à chaud  -> http://localhost:8001/docs
+make test    # tests de l'API (le test d'intégration ne tourne que si MLflow répond)
+```
+
+| Méthode | Route | Rôle |
+|---|---|---|
+| `GET` | `/health` | Sonde : modèle chargé et version servie |
+| `GET` | `/v1/model` | Fiche du modèle : run MLflow, descripteurs attendus, hyperparamètres, métriques |
+| `POST` | `/v1/predict` | Prédiction pour une molécule |
+| `POST` | `/v1/predict/batch` | Prédiction pour 1 à 1000 molécules, dans l'ordre de la requête |
+
+```bash
+curl -X POST http://localhost:8001/v1/predict -H "Content-Type: application/json" \
+  -d '{"SC-5": 0.540936, "SP-6": 7.64192, "SHBd": 0.162171, "minHaaCH": 0.44527, "maxwHBa": 2.20557, "FMF": 0.467742}'
+```
+
+Réponse (probabilités arrondies) :
+
+```json
+{
+  "label": "High_BFE",
+  "probabilities": {"Low_BFE": 0.056, "High_BFE": 0.944},
+  "model": {"name": "sirtuin6-elastic", "version": "10", "alias": "production"}
+}
+```
+
+- Entrées validées : descripteur manquant ou inconnu, texte, NaN ou infini → `422`.
+- Variables d'environnement : `MLFLOW_TRACKING_URI` ; `MODEL_ALIAS` pour servir un autre alias,
+  par exemple `MODEL_ALIAS=staging make up` pour essayer une version avant sa promotion ;
+  `CORS_ORIGINS` pour les origines du frontend autorisées (par défaut le serveur Vite, port 5173).
+- Le schéma OpenAPI (`/openapi.json`) décrit tout le contrat de l'API.
+
 ## Pistes d'amélioration
 
 - Déclencher le ré-entraînement sur alerte de drift Evidently plutôt que sur un calendrier fixe.
-- Ajouter des tests unitaires et une CI (lint, tests, validation des données).
+- Étendre les tests et la CI au pipeline ML (lint, validation des données) : seule l'API est
+  couverte aujourd'hui.
 - Versionner les données (DVC) et externaliser le stockage d'artefacts MLflow (S3/MinIO).
-- Exposer le modèle `production` via une API de serving.
+- Journaliser les prédictions de l'API et les comparer au dataset d'entraînement dans Evidently
+  (drift des données de production).
 
 ## Dataset
 

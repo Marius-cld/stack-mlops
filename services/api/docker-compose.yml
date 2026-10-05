@@ -1,0 +1,19 @@
+services:
+  api:
+    build:
+      # Racine du dépôt : l'image embarque config/ et src/deploying/app/
+      context: ../..
+      dockerfile: services/api/Dockerfile
+    container_name: api
+    ports:
+      - "8001:8000"
+    environment:
+      # MLflow tourne sur l'hôte (services/mlflow, port 5001)
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-http://host.docker.internal:5001}
+      # Alias du registre servi : staging pour essayer une version avant sa promotion
+      MODEL_ALIAS: ${MODEL_ALIAS:-production}
+      # Origines autorisées à appeler l'API depuis un navigateur (frontend)
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

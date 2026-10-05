@@ -54,6 +54,11 @@ MLFLOW_PRODUCTION_ALIAS = "production"
 MLFLOW_STAGING_ALIAS = "staging"
 MLFLOW_CANDIDATE_ALIAS = "candidate"  # modèle entraîné sur le train, évalué sur le test
 
+# Serving (API FastAPI)
+SERVING_MODEL = "elastic"  # champion retenu par le lab (benchmark + robustesse)
+SERVING_ALIAS = MLFLOW_PRODUCTION_ALIAS  # surchargeable via MODEL_ALIAS (ex. staging)
+MAX_BATCH_SIZE = 1000  # molécules par requête sur /v1/predict/batch
+
 # Contrôles qualité (data validation et gate avant staging)
 MIN_ROWS = 50
 MIN_CLASS_SHARE = 0.3

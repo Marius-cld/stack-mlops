@@ -1,0 +1,7 @@
+# Le contexte de build est la racine du dépôt : liste blanche du code nécessaire au serving
+# (pas de données, de modèles locaux, de registre MLflow ni de logs Airflow dans l'image).
+*
+!config
+!src/__init__.py
+!src/deploying/app
+**/__pycache__

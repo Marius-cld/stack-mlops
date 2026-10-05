@@ -18,6 +18,9 @@ EVIDENTLY_PATH = SERVICES_PATH / "evidently"
 EVIDENTLY_WORKSPACE_PATH = EVIDENTLY_PATH / "workspace"
 EVIDENTLY_PORT = 8000
 EVIDENTLY_WORKSPACE_URL = f"http://localhost:{EVIDENTLY_PORT}"
+API_PORT = 8001  # 8000 est pris par Evidently
+FRONTEND_PORT = 5173  # serveur de dev Vite (frontend/)
+FRONTEND_URL = f"http://localhost:{FRONTEND_PORT}"
 
 # Data
 DATA_PATH = ROOT_PATH / "data"
@@ -39,6 +42,7 @@ LAB_PATH = SRC_PATH / "lab"
 PIPELINE_PATH = SRC_PATH / "pipeline"
 ROBUSTNESS_PATH = SRC_PATH / "robustness"
 MONITORING_PATH = SRC_PATH / "monitoring"
+DEPLOYING_PATH = SRC_PATH / "deploying"
 
 
 def figure_path(name: str) -> Path:

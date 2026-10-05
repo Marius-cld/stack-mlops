@@ -1,0 +1,29 @@
+# API de serving : tests puis build de l'image.
+# Le test d'intégration (registre MLflow réel) est ignoré : pas de serveur MLflow en CI.
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+jobs:
+  api:
+    name: API de serving
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+          cache: pip
+
+      - name: Dépendances
+        run: pip install -r requirements.txt
+
+      - name: Tests
+        run: pytest src/deploying/tests
+
+      - name: Image Docker
+        run: docker build -f services/api/Dockerfile .

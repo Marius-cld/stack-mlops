@@ -1,19 +1,24 @@
-.PHONY: install build down up run test
+.PHONY: install run test build up down
+
+PYTHON ?= python3
+API_COMPOSE = docker compose -f services/api/docker-compose.yml
 
 install:
-	pip install -r requirements.txt
+	$(PYTHON) -m pip install -r requirements.txt
 
-build:
-	docker compose build --no-cache
-
-down:
-	docker compose down -v
-
-up:
-	docker compose up -d
-
+# API en local, rechargement à chaud -> http://localhost:8001/docs
 run:
-	uvicorn src.deploying.app.main:app --reload
+	$(PYTHON) -m src.deploying.app.main
 
 test:
-	pytest src/deploying/tests
+	$(PYTHON) -m pytest src/deploying/tests
+
+# API conteneurisée (services/api) -> http://localhost:8001/docs
+build:
+	$(API_COMPOSE) build --no-cache
+
+up:
+	$(API_COMPOSE) up -d --build
+
+down:
+	$(API_COMPOSE) down
