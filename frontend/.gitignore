@@ -1,24 +1,18 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+# Principe : git suit le code et la configuration du frontend.
+# Dépendances, build et réglages locaux restent hors du dépôt.
 
-node_modules
-dist
-dist-ssr
+# Dépendances (npm ci) et build de production (npm run build)
+node_modules/
+dist/
+
+# Logs npm
+*.log
+
+# Variables locales : .env.local (voir .env.example)
 *.local
 
-# Editor directories and files
+# macOS / éditeurs
+.DS_Store
+.idea/
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?

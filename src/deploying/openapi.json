@@ -1,0 +1,512 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sirtuin6 BFE API",
+    "description": "\nPrédit si une petite molécule a une énergie de liaison **élevée** (`High_BFE`) ou **faible**\n(`Low_BFE`) sur la protéine Sirtuin 6, à partir de 6 descripteurs moléculaires PaDEL.\n\nLe modèle servi est la version du registre MLflow pointée par un alias, `production` par défaut\n(posé à la main après revue). Chaque réponse indique la version qui l'a produite.\n",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Health",
+        "description": "Sonde de disponibilité : l'API ne répond qu'une fois le modèle chargé et validé.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/model": {
+      "get": {
+        "tags": [
+          "modèle"
+        ],
+        "summary": "Model Info",
+        "description": "Fiche du modèle servi : provenance MLflow, descripteurs, hyperparamètres, métriques.",
+        "operationId": "model_info_v1_model_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/predict": {
+      "post": {
+        "tags": [
+          "prédiction"
+        ],
+        "summary": "Predict",
+        "description": "Prédit la classe d'énergie de liaison d'une molécule.",
+        "operationId": "predict_v1_predict_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Molecule"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PredictionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/predict/batch": {
+      "post": {
+        "tags": [
+          "prédiction"
+        ],
+        "summary": "Predict Batch",
+        "description": "Prédit plusieurs molécules en un appel ; les réponses suivent l'ordre de la requête.",
+        "operationId": "predict_batch_v1_predict_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BatchRequest": {
+        "properties": {
+          "molecules": {
+            "items": {
+              "$ref": "#/components/schemas/Molecule"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Molecules"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "molecules"
+        ],
+        "title": "BatchRequest",
+        "description": "Lot de molécules à prédire en un seul appel."
+      },
+      "BatchResponse": {
+        "properties": {
+          "predictions": {
+            "items": {
+              "$ref": "#/components/schemas/Prediction"
+            },
+            "type": "array",
+            "title": "Predictions",
+            "description": "Une prédiction par molécule, dans l'ordre de la requête"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelRef"
+          }
+        },
+        "type": "object",
+        "required": [
+          "predictions",
+          "model"
+        ],
+        "title": "BatchResponse",
+        "description": "Prédictions d'un lot et version du modèle qui les a produites."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelRef"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "model"
+        ],
+        "title": "Health",
+        "description": "État de l'API et modèle servi."
+      },
+      "ModelInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "examples": [
+              "sirtuin6-elastic"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "examples": [
+              "10"
+            ]
+          },
+          "alias": {
+            "type": "string",
+            "title": "Alias",
+            "examples": [
+              "production"
+            ]
+          },
+          "run_id": {
+            "type": "string",
+            "title": "Run Id",
+            "description": "Run MLflow qui a produit cette version"
+          },
+          "features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Features",
+            "description": "Descripteurs attendus en entrée"
+          },
+          "classes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "Low_BFE",
+                "High_BFE"
+              ]
+            },
+            "type": "array",
+            "title": "Classes"
+          },
+          "positive_class": {
+            "type": "string",
+            "enum": [
+              "Low_BFE",
+              "High_BFE"
+            ],
+            "title": "Positive Class"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Params",
+            "description": "Hyperparamètres retenus par l'optimisation"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Metrics",
+            "description": "Métriques loguées dans MLflow (test, CV)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "alias",
+          "run_id",
+          "features",
+          "classes",
+          "positive_class",
+          "params",
+          "metrics"
+        ],
+        "title": "ModelInfo",
+        "description": "Fiche du modèle servi."
+      },
+      "ModelRef": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "examples": [
+              "sirtuin6-elastic"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "examples": [
+              "10"
+            ]
+          },
+          "alias": {
+            "type": "string",
+            "title": "Alias",
+            "examples": [
+              "production"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "alias"
+        ],
+        "title": "ModelRef",
+        "description": "Version du registre MLflow qui a produit la réponse (traçabilité)."
+      },
+      "Molecule": {
+        "properties": {
+          "SC-5": {
+            "type": "number",
+            "title": "Sc-5",
+            "description": "Indice de connectivité de Kier-Hall : cluster simple d'ordre 5",
+            "examples": [
+              0.540936
+            ]
+          },
+          "SP-6": {
+            "type": "number",
+            "title": "Sp-6",
+            "description": "Indice de connectivité de Kier-Hall : chemin simple d'ordre 6",
+            "examples": [
+              7.64192
+            ]
+          },
+          "SHBd": {
+            "type": "number",
+            "title": "Shbd",
+            "description": "Somme des E-States des donneurs forts de liaison hydrogène",
+            "examples": [
+              0.162171
+            ]
+          },
+          "minHaaCH": {
+            "type": "number",
+            "title": "Minhaach",
+            "description": "E-State minimal des hydrogènes portés par un CH aromatique",
+            "examples": [
+              0.44527
+            ]
+          },
+          "maxwHBa": {
+            "type": "number",
+            "title": "Maxwhba",
+            "description": "E-State maximal des accepteurs faibles de liaison hydrogène",
+            "examples": [
+              2.20557
+            ]
+          },
+          "FMF": {
+            "type": "number",
+            "title": "Fmf",
+            "description": "Fraction des atomes lourds appartenant au squelette moléculaire (complexité)",
+            "examples": [
+              0.467742
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "SC-5",
+          "SP-6",
+          "SHBd",
+          "minHaaCH",
+          "maxwHBa",
+          "FMF"
+        ],
+        "title": "Molecule",
+        "description": "Descripteurs moléculaires PaDEL d'une molécule, sous les noms des colonnes du dataset.\n\nValeurs finies uniquement : NaN et infini sont refusés (422) au lieu de faire échouer le modèle."
+      },
+      "Prediction": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "enum": [
+              "Low_BFE",
+              "High_BFE"
+            ],
+            "title": "Label",
+            "description": "Classe prédite : énergie de liaison élevée ou faible"
+          },
+          "probabilities": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "propertyNames": {
+              "enum": [
+                "Low_BFE",
+                "High_BFE"
+              ]
+            },
+            "type": "object",
+            "title": "Probabilities",
+            "description": "Probabilité par classe (somme = 1)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "probabilities"
+        ],
+        "title": "Prediction",
+        "description": "Prédiction pour une molécule."
+      },
+      "PredictionResponse": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "enum": [
+              "Low_BFE",
+              "High_BFE"
+            ],
+            "title": "Label",
+            "description": "Classe prédite : énergie de liaison élevée ou faible"
+          },
+          "probabilities": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "propertyNames": {
+              "enum": [
+                "Low_BFE",
+                "High_BFE"
+              ]
+            },
+            "type": "object",
+            "title": "Probabilities",
+            "description": "Probabilité par classe (somme = 1)"
+          },
+          "model": {
+            "$ref": "#/components/schemas/ModelRef"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "probabilities",
+          "model"
+        ],
+        "title": "PredictionResponse",
+        "description": "Prédiction d'une molécule et version du modèle qui l'a produite."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

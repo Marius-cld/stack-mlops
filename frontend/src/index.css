@@ -1,22 +1,68 @@
+/*
+ * Charte graphique : une seule couleur d'accent, le bleu de marque R 0,150 · V 0,180 · B 0,370
+ * (#262e5e, teinte 232°), sa teinte claire #edeff8 (fond de page, reliefs clairs) et des neutres
+ * légèrement teintés de ce bleu.
+ * Formes inspirées du web 2010-2012, épurées : petits rayons, filets de 1 px, boutons en léger
+ * dégradé vertical avec reflet en haut et filet plus sombre en bas, qui s'enfoncent à l'appui ;
+ * champs, barres et zone de résultat en creux.
+ * En mode sombre, le bandeau et les boutons gardent le bleu de marque (pas de halo clair) ; liens,
+ * onglets et barres passent à une version éclaircie de la même teinte, lisible sur fond sombre.
+ */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --brand: #262e5e;
+  --brand-tint: #edeff8;
+  --on-brand: #ffffff;
+  --accent: var(--brand);
+  --accent-strong: #1a2046;
+  --on-accent: #ffffff;
+  --accent-soft: rgb(38 46 94 / 0.07);
+  --accent-line: rgb(38 46 94 / 0.25);
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Bouton principal : dégradé du bleu de marque */
+  --button-top: #343d79;
+  --button-bottom: var(--brand);
+  --button-hover-top: #2a3268;
+  --button-hover-bottom: #1d2449;
+  --button-border: #1a2046;
+  --button-border-bottom: #10142e;
+  /* Relief clair : boutons secondaires, touches des descripteurs */
+  --raised-top: #ffffff;
+  --raised-bottom: var(--brand-tint);
+  --raised-hover-bottom: #e2e5f3;
+  --raised-border: #c9cee0;
+  --raised-border-bottom: #aeb4cb;
+  --highlight: rgb(255 255 255 / 0.9);
+  --emboss: 0 1px 0 rgb(255 255 255 / 0.8);
+  /* Barres de probabilité */
+  --fill-top: #3a4482;
+  --fill-bottom: var(--brand);
+  /* Creux : champs, barres, zone de résultat */
+  --well: var(--brand-tint);
+  --well-shadow: inset 0 1px 2px rgb(22 26 46 / 0.08);
+  --pressed: inset 0 2px 4px rgb(22 26 46 / 0.2);
+  --focus-glow: rgb(38 46 94 / 0.35);
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  --bg: var(--brand-tint);
+  --surface: #ffffff;
+  --surface-2: #f5f6fb;
+  --border: #d5d9e7;
+  --border-strong: #b9bfd3;
+  --track: #dde0ee;
+  --zebra: #f8f9fd;
+  --text: #474d65;
+  --text-strong: #161a2e;
+  --text-muted: #5f657d;
+  --danger: #b42318;
+  --danger-soft: #fdf0ee;
+  --shadow: 0 1px 2px rgb(22 26 46 / 0.07);
+
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius: 6px; /* panneaux, zones */
+  --radius-sm: 4px; /* boutons, champs, onglets */
+  --radius-xs: 3px; /* étiquettes */
+
+  font: 16px/1.5 var(--sans);
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
@@ -24,88 +70,92 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+    --accent: #98a2e1;
+    --accent-strong: #b9c0ef;
+    --on-accent: #12152a;
+    --accent-soft: rgb(152 162 225 / 0.1);
+    --accent-line: rgb(152 162 225 / 0.32);
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --button-hover-top: #3a4485;
+    --button-hover-bottom: #2c3569;
+    --button-border: #3c4677;
+    --button-border-bottom: #2a3262;
+    --raised-top: #242a45;
+    --raised-bottom: #1b2035;
+    --raised-hover-bottom: #222842;
+    --raised-border: #3a4163;
+    --raised-border-bottom: #2a3050;
+    --highlight: rgb(255 255 255 / 0.06);
+    --emboss: 0 -1px 0 rgb(0 0 0 / 0.4);
+    --fill-top: #aab3ea;
+    --fill-bottom: #8d97d9;
+    --well: #10131f;
+    --well-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+    --pressed: inset 0 2px 4px rgb(0 0 0 / 0.4);
+    --focus-glow: rgb(152 162 225 / 0.45);
+
+    --bg: #0d0f1d;
+    --surface: #151929;
+    --surface-2: #1a1f33;
+    --border: #282e48;
+    --border-strong: #3a4163;
+    --track: #232842;
+    --zebra: #181c2e;
+    --text: #b3b8cd;
+    --text-strong: var(--brand-tint);
+    --text-muted: #8b91ab;
+    --danger: #f97066;
+    --danger-soft: rgb(249 112 102 / 0.1);
+    --shadow: none;
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
+  min-height: 100svh;
+  background: var(--bg);
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3 {
+  color: var(--text-strong);
+  line-height: 1.2;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
 p {
   margin: 0;
 }
 
-code,
-.counter {
+code {
   font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+  font-size: 0.9em;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+button {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

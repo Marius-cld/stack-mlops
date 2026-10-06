@@ -1,0 +1,4 @@
+# Le Dockerfile ne copie aucun fichier : le contexte de build reste vide.
+# Le .env (FERNET_KEY, mot de passe admin), les logs et la config générée n'entrent jamais dans
+# l'image. Les DAGs et le code du projet sont montés en volume (docker-compose.yml).
+*

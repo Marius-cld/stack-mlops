@@ -1,120 +1,156 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+/** Application : état de l'API, onglets de prédiction (molécule ou lot CSV), fiche du modèle. */
+
+import { useEffect, useState } from 'react'
+import { API_URL, errorMessage, getModelInfo, type ModelInfo } from './api/client'
+import { BatchPredict } from './components/BatchPredict'
+import { ModelCard } from './components/ModelCard'
+import { PredictForm } from './components/PredictForm'
 import './App.css'
 
+type ApiState =
+  | { status: 'loading' }
+  | { status: 'ready'; info: ModelInfo }
+  | { status: 'offline'; message: string }
+
+/** Charge la fiche du modèle servi, dont dépend toute l'interface ; `retry` la recharge. */
+function useModelInfo() {
+  const [state, setState] = useState<ApiState>({ status: 'loading' })
+  const [attempt, setAttempt] = useState(0)
+
+  useEffect(() => {
+    let ignore = false
+    getModelInfo().then(
+      (info) => {
+        if (!ignore) setState({ status: 'ready', info })
+      },
+      (error) => {
+        if (!ignore) setState({ status: 'offline', message: errorMessage(error) })
+      },
+    )
+    return () => {
+      ignore = true
+    }
+  }, [attempt])
+
+  const retry = () => {
+    setState({ status: 'loading' })
+    setAttempt((n) => n + 1)
+  }
+  return [state, retry] as const
+}
+
+function ApiStatus({ state }: { state: ApiState }) {
+  if (state.status === 'loading') {
+    return <span className="status">Connexion à l’API…</span>
+  }
+  if (state.status === 'offline') {
+    return <span className="status status-offline">API injoignable</span>
+  }
+  const { name, version, alias } = state.info
+  return (
+    <span className="status status-ready">
+      {name} v{version} · {alias}
+    </span>
+  )
+}
+
+function Offline({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <section className="panel offline" role="alert">
+      <h2>L’API de serving ne répond pas</h2>
+      <p className="alert">{message}</p>
+      <p>
+        Elle doit tourner sur <code>{API_URL}</code> : <code>make up</code> (conteneur) ou{' '}
+        <code>make run</code> (local) à la racine de la stack. Elle refuse de démarrer sans
+        registre MLflow joignable ni version sous l’alias servi.
+      </p>
+      <button type="button" className="button primary" onClick={onRetry}>
+        Réessayer
+      </button>
+    </section>
+  )
+}
+
+const TABS = [
+  { id: 'single', title: 'Une molécule' },
+  { id: 'batch', title: 'Lot CSV' },
+] as const
+
+/** Affiche les onglets de prédiction à côté de la fiche du modèle. */
+function Workspace({ info }: { info: ModelInfo }) {
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('single')
+
+  return (
+    <div className="layout">
+      <section className="panel">
+        <div className="panel-head tabs" role="tablist" aria-label="Mode de prédiction">
+          {TABS.map(({ id, title }) => (
+            <button
+              key={id}
+              id={`tab-${id}`}
+              type="button"
+              role="tab"
+              className="tab"
+              aria-selected={tab === id}
+              aria-controls={`panel-${id}`}
+              onClick={() => setTab(id)}
+            >
+              {title}
+            </button>
+          ))}
+        </div>
+        {/* Les deux onglets restent montés : changer d'onglet ne perd ni saisie ni résultats */}
+        <div id="panel-single" role="tabpanel" aria-labelledby="tab-single" hidden={tab !== 'single'}>
+          <PredictForm info={info} />
+        </div>
+        <div id="panel-batch" role="tabpanel" aria-labelledby="tab-batch" hidden={tab !== 'batch'}>
+          <BatchPredict info={info} />
+        </div>
+      </section>
+      <ModelCard info={info} />
+    </div>
+  )
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [state, retry] = useModelInfo()
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
+      <header className="masthead">
+        <div className="container">
+          <div className="topbar">
+            <span className="brand">
+              {/* Même fichier que le favicon (`index.html`) */}
+              <img src={`${import.meta.env.BASE_URL}images.svg`} alt="" width={28} height={28} />
+              Sirtuin6 BFE
+            </span>
+            <ApiStatus state={state} />
+          </div>
+          <hgroup>
+            <h1>Énergie de liaison sur Sirtuin 6</h1>
+            <p>Enzyme codée par un gène situé sur le chromosome 19 humain</p>
+          </hgroup>
           <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+            Classez une petite molécule en énergie de liaison élevée (<code>High_BFE</code>) ou
+            faible (<code>Low_BFE</code>) à partir de six descripteurs PaDEL, avec le modèle servi
+            par l’API.
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
+      <main className="container page">
+        {state.status === 'loading' && <p className="muted">Chargement du modèle servi…</p>}
+        {state.status === 'offline' && <Offline message={state.message} onRetry={retry} />}
+        {state.status === 'ready' && <Workspace info={state.info} />}
+      </main>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <footer className="container footer">
+        API <code>{API_URL}</code> ·{' '}
+        <a className="link" href={`${API_URL}/openapi.json`} target="_blank" rel="noreferrer">
+          contrat OpenAPI
+        </a>
+      </footer>
     </>
   )
 }

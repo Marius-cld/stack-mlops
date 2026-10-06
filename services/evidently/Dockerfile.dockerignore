@@ -1,0 +1,3 @@
+# Le Dockerfile ne copie aucun fichier : le contexte de build reste vide.
+# Le workspace des rapports est monté en volume (docker-compose.yml), jamais copié dans l'image.
+*

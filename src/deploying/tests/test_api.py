@@ -12,6 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
 from config.ml_params import CLASSES, MAX_BATCH_SIZE, POSITIVE_CLASS, TARGET
+from config.settings import OPENAPI_PATH
 from src.deploying.app.main import create_app
 from src.deploying.app.model import load_from_registry, registry_reachable
 from src.deploying.app.schemas import Label, Molecule
@@ -116,6 +117,12 @@ def test_openapi_schema(client):
     """Le schéma OpenAPI (source des types TypeScript du frontend) se génère."""
     paths = client.get("/openapi.json").json()["paths"]
     assert {"/health", "/v1/model", "/v1/predict", "/v1/predict/batch"} <= paths.keys()
+
+
+def test_openapi_contract_up_to_date(client):
+    """Le contrat publié pour le frontend (`openapi.json`) est celui que l'API sert réellement."""
+    published = json.loads(OPENAPI_PATH.read_text(encoding="utf-8"))
+    assert published == client.get("/openapi.json").json(), "contrat obsolète : `make openapi`"
 
 
 def test_unreachable_registry_fails_fast(monkeypatch):

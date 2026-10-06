@@ -44,6 +44,8 @@ PIPELINE_PATH = SRC_PATH / "pipeline"
 ROBUSTNESS_PATH = SRC_PATH / "robustness"
 MONITORING_PATH = SRC_PATH / "monitoring"
 DEPLOYING_PATH = SRC_PATH / "deploying"
+# Contrat publié de l'API, généré depuis le code : seul lien du frontend avec l'API
+OPENAPI_PATH = DEPLOYING_PATH / "openapi.json"
 
 
 def figure_path(name: str) -> Path:

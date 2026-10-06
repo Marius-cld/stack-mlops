@@ -1,4 +1,4 @@
-.PHONY: install run test build up down
+.PHONY: install run test openapi build up down
 
 PYTHON ?= python3
 API_COMPOSE = docker compose -f services/api/docker-compose.yml
@@ -12,6 +12,10 @@ run:
 
 test:
 	$(PYTHON) -m pytest src/deploying/tests
+
+# Contrat de l'API (src/deploying/openapi.json), lu par le frontend : après chaque changement de schemas.py
+openapi:
+	$(PYTHON) -m src.deploying.export_openapi
 
 # API conteneurisée (services/api) -> http://localhost:8001/docs
 build:

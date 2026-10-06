@@ -5,3 +5,5 @@
 !src/__init__.py
 !src/deploying/app
 **/__pycache__
+**/*.py[cod]
+**/.DS_Store
